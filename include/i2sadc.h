@@ -34,8 +34,8 @@ int adcRead(int16_t *samples, int count)
     // Read from i2s
     size_t bytes_read = 0;
     i2s_read(I2S_PORT, samples, sizeof(int16_t) * count, &bytes_read, portMAX_DELAY);
-    int samples_read = bytes_read / sizeof(int16_t);
-    for (int i = 0; i < samples_read; i++)
+    uint16_t samples_read = bytes_read / sizeof(int16_t);
+    for (uint16_t i = 0; i < samples_read; i++)
     {
         samples[i] = (2048 - (uint16_t(samples[i]) & 0xfff)) * 15;
     }

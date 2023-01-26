@@ -19,8 +19,8 @@
 
 // FFT
 #define BANDS 16
-static int bandFreqTable[BANDS] = {50, 80, 100, 150, 250, 400, 650, 800, 1250, 2500, 4000, 6250, 12000, 14000, 16000, 20000};
-unsigned int bandBins[BANDS] = {0};
-double vReal[SAMPLES];
-double vImag[SAMPLES];
-volatile double avgVU = 0.0;
+static int16_t bandFreqTable[BANDS] = {50, 80, 100, 150, 250, 400, 650, 800, 1250, 2500, 4000, 6250, 12000, 14000, 16000, 20000};
+uint16_t bandBins[BANDS] = {0};
+double_t vReal[SAMPLES];
+double_t vImag[SAMPLES];
+volatile double_t avgVU = 0.0;
