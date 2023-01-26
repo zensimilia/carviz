@@ -1,7 +1,5 @@
 #pragma once
 
-#define FPS 30
-
 // Quick colors
 #define BLACK 0x00
 #define WHITE 0xFF

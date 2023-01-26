@@ -1,14 +1,12 @@
 #include <Arduino.h>
-#include <ESP_8_BIT_GFX.h>
 #include <arduinoFFT.h>
 #include <esp_wifi.h>
 #include <settings.h>
+#include <lgfx.h>
 #include <i2sadc.h>
-#include <Fonts/FreeSerif9pt7b.h>
 #include "rocket_img.h"
 
-// NTSC, 240x256, 8-bit (RGB332) color
-ESP_8_BIT_GFX videoOut(true, 8);
+LGFX gfx; // NTSC, 480x270, 8-bit (RGB332) color
 arduinoFFT FFT = arduinoFFT();
 TaskHandle_t adcWriterTaskHandle;
 
@@ -76,16 +74,15 @@ void adcWriterTask(void *param)
 
 void drawText()
 {
-    videoOut.setFont(&FreeSerif9pt7b);
-    // TV.print(20, 60, "ASTRO BLACK");
-    videoOut.setCursor(50, 160);
-    videoOut.setTextColor(WHITE);
-    videoOut.println("ASTRO BLACK");
-    // if (millis() / 1000 % 2)
-    // {
-    // TV.select_font(font4x6);
-    // TV.print(42, 70, "PRESS START");
-    // }
+    gfx.setFont(&fonts::FreeMonoBold24pt7b);
+    gfx.setTextDatum(textdatum_t::middle_center);
+
+    gfx.drawString("ASTRO BLACK", gfx.width() >> 1, gfx.height() >> 1);
+    if (millis() / 1000 % 2)
+    {
+        gfx.setTextSize(3);
+        gfx.drawString("PRESS START", 50, 190);
+    }
 }
 
 void drawAsteroids()
@@ -100,7 +97,7 @@ void drawAsteroids()
         }
 
         if (asteroidsX[i] <= 240 && asteroidsX[i] > 0)
-            videoOut.fillCircle(asteroidsX[i], asteroidsY[i], asteroidsS[i], WHITE);
+            gfx.fillCircle(asteroidsX[i], asteroidsY[i], asteroidsS[i], WHITE);
 
         asteroidsX[i] -= asteroidsZ[i];
     }
@@ -108,14 +105,14 @@ void drawAsteroids()
 
 void drawRocket()
 {
-    unsigned char rx = (videoOut.width() - 72) >> 1;
-    unsigned char y = (videoOut.height() - 40) >> 1;
+    unsigned char rx = (gfx.width() - 72) >> 1;
+    unsigned char y = (gfx.height() - 40) >> 1;
     ry += rdy;
     if (ry > 20)
         rdy = -1;
     if (ry < 5)
         rdy = 1;
-    videoOut.drawBitmap(rx, y - ry, rocket_img, 72, 40, WHITE);
+    gfx.drawBitmap(rx, y - ry, rocket_img, 72, 40, WHITE);
 }
 
 void rocketScreen()
@@ -124,7 +121,7 @@ void rocketScreen()
 
     // if (frames > 2)
     // {
-    videoOut.fillScreen(BLACK);
+    gfx.clearDisplay();
     frames = 0;
     drawRocket();
     drawText();
@@ -132,7 +129,7 @@ void rocketScreen()
 
     drawAsteroids();
 
-    videoOut.waitForFrame();
+    // gfx.waitDisplay();
 }
 
 void setup()
@@ -152,8 +149,12 @@ void setup()
         ;
     }
 
-    videoOut.begin();
-    Serial.println(3);
+    gfx.setColorDepth(lgfx::color_depth_t::rgb332_1Byte);
+    gfx.init();
+    gfx.setTextSize((std::max(gfx.width(), gfx.height()) + 255) >> 8);
+    gfx.setTextColor(WHITE);
+
+    delay(1000);
 }
 
 void loop()
