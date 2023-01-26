@@ -10,13 +10,19 @@ LGFX gfx; // NTSC, 480x270, 8-bit (RGB332) color
 arduinoFFT FFT = arduinoFFT();
 TaskHandle_t adcWriterTaskHandle;
 
-#define ASTEROIDS_QTY 32
+// Sprites
+static LGFX_Sprite astro(&gfx);
+static LGFX_Sprite rocket(&astro);
+static LGFX_Sprite header(&astro);
+
+#define ASTEROIDS_QTY 16
 struct asteroid_t
 {
     int16_t x;
     int16_t y;
     uint8_t z;
     uint8_t r;
+    LGFX_Sprite sprite;
 };
 asteroid_t asteroids[ASTEROIDS_QTY];
 
@@ -83,15 +89,19 @@ void drawText()
     int16_t xCenter = screenW >> 1;
     int16_t yCenter = screenH >> 1;
 
-    gfx.setFont(&fonts::Orbitron_Light_32);
-    gfx.setTextDatum(textdatum_t::middle_center);
-    gfx.drawString("ASTRO BLACK", xCenter, yCenter);
+    header.clear();
+    header.setTextSize(0.8);
+    header.setFont(&fonts::Orbitron_Light_24);
+    header.drawString("ASTRO BLACK", xCenter, 0);
 
     if ((long)seconds % 2)
     {
-        gfx.setFont(&fonts::FreeMonoBold18pt7b);
-        gfx.drawString("PRESS START", xCenter, yCenter + 24);
+        header.setTextSize(1);
+        header.setFont(&fonts::Font8x8C64);
+        header.drawString("PRESS START", xCenter, 24);
     }
+
+    header.pushSprite(0, yCenter, TFT_TRANSPARENT);
 }
 
 void drawAsteroids()
@@ -105,7 +115,7 @@ void drawAsteroids()
         }
 
         if (asteroids[i].x <= screenW && asteroids[i].x > 0)
-            gfx.fillCircle(asteroids[i].x, asteroids[i].y, asteroids[i].r, GREEN);
+            asteroids[i].sprite.pushSprite(&astro, asteroids[i].x, asteroids[i].y, TFT_TRANSPARENT);
 
         asteroids[i].x -= asteroids[i].z;
     }
@@ -122,22 +132,66 @@ void drawRocket()
     if (ry < 5)
         rdy = 1;
 
-    gfx.drawXBitmap(x, y - ry, rocket_img, 96, 54, WHITE);
+    rocket.pushSprite(x, y - ry, TFT_TRANSPARENT);
 }
 
 void rocketScreen()
 {
-    frames++;
+    astro.createSprite(screenW, screenH);
+    astro.setBaseColor(gfx.color332(0, 0, 102));
+    astro.clear();
 
-    if (frames > 1)
+    rocket.setColorDepth(lgfx::palette_4bit);
+    rocket.createSprite(96, 56);
+    rocket.fillScreen(TFT_TRANSPARENT);
+    rocket.drawBitmap(0, 1, rocket_img, 96, 54, TFT_WHITE);
+
+    header.setColorDepth(lgfx::palette_4bit);
+    header.createSprite(screenW, screenH >> 1);
+    header.fillScreen(TFT_TRANSPARENT);
+    header.setTextColor(TFT_WHITE);
+    header.setTextDatum(textdatum_t::top_center);
+
+    for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
-        frames = 0;
-        gfx.clearDisplay();
-        drawRocket();
-        drawText();
+        asteroids[i].x = random(0, screenW << 1);
+        asteroids[i].y = random(0, screenH);
+        asteroids[i].z = random(1, 4);
+        asteroids[i].r = random(0, 4);
+        asteroids[i].sprite.setColorDepth(lgfx::palette_4bit);
+        asteroids[i].sprite.createSprite(10, 10);
+        asteroids[i].sprite.fillScreen(TFT_TRANSPARENT);
+        asteroids[i].sprite.fillCircle(5, 5, asteroids[i].r, TFT_WHITE);
     }
 
-    drawAsteroids();
+    while (true)
+    {
+
+        frames++;
+        seconds = millis() / 1000;
+
+        if (frames > 5)
+        {
+            frames = 0;
+            astro.clear();
+
+            drawAsteroids();
+            drawRocket();
+            drawText();
+        }
+
+        astro.pushRotateZoom(0, 1, 1, TFT_TRANSPARENT);
+
+        gfx.display();
+    }
+
+    rocket.deleteSprite();
+    header.deleteSprite();
+    for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
+    {
+        asteroids[i].sprite.deleteSprite();
+    }
+    astro.deleteSprite();
 }
 
 void setup()
@@ -157,24 +211,12 @@ void setup()
     screenW = gfx.width();
     screenH = gfx.height();
 
-    gfx.setTextSize((std::max(screenW, screenH) + 255) >> 8);
-    gfx.setTextColor(WHITE);
+    // gfx.startWrite();
 
     delay(1000);
-
-    for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
-    {
-        asteroids[i].x = random(screenW, screenW << 1);
-        asteroids[i].y = random(0, screenH);
-        asteroids[i].z = random(1, 3);
-        asteroids[i].r = random(0, 3);
-    }
 }
 
 void loop()
 {
-    // Get the current time and calculate a scaling factor
-    seconds = (float_t)(millis() % 1000) / 1000.0;
-
     rocketScreen();
 }
