@@ -16,7 +16,7 @@
 // Analog to digital
 #define SAMPLING_FREQ 44100
 #define SAMPLES 1024
-#define REAL_SAMPLES (SAMPLES / 2)
+#define REAL_SAMPLES (SAMPLES >> 1)
 #define ADC_INPUT ADC1_CHANNEL_0 // GPIO36
 
 // FFT

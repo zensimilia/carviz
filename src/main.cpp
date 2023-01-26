@@ -20,7 +20,6 @@ short int asteroidsZ[ASTEROIDS];
 short int asteroidsS[ASTEROIDS];
 
 unsigned char frames = 0;
-unsigned char rx = 60;
 unsigned char ry = 20;
 signed char rdy = 1;
 
@@ -28,7 +27,7 @@ int bucketFreq(int i)
 {
     if (i <= 1)
         return 0;
-    return (i - 2) * (SAMPLING_FREQ / 2) / REAL_SAMPLES;
+    return (i - 2) * (SAMPLING_FREQ >> 1) / REAL_SAMPLES;
 }
 
 void adcWriterTask(void *param)
@@ -109,12 +108,14 @@ void drawAsteroids()
 
 void drawRocket()
 {
+    unsigned char rx = (videoOut.width() - 72) >> 1;
+    unsigned char y = (videoOut.height() - 40) >> 1;
     ry += rdy;
     if (ry > 20)
         rdy = -1;
     if (ry < 5)
         rdy = 1;
-    videoOut.drawBitmap(rx, ry, rocket_img, 72, 40, WHITE);
+    videoOut.drawBitmap(rx, y - ry, rocket_img, 72, 40, WHITE);
 }
 
 void rocketScreen()
