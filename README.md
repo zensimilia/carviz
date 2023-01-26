@@ -10,3 +10,5 @@ A real-time audio spectrum analyzer with visual demo scenes and composite video 
 - https://github.com/Roger-random/ESP_8_BIT_composite
 - https://github.com/kosme/arduinoFFT
 - https://github.com/adafruit/Adafruit-GFX-Library
+- https://github.com/lovyan03/LovyanGFX/blob/master/doc/Panel_CVBS.md
+- https://lovyangfx.readthedocs.io/en/latest/index.html
