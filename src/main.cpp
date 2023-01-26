@@ -113,8 +113,8 @@ void drawAsteroids()
 
 void drawRocket()
 {
-    uint16_t x = (screenW - 72) >> 1;
-    uint16_t y = (screenH - 40) >> 1;
+    uint16_t x = (screenW - 96) >> 1;
+    uint16_t y = (screenH - 96) >> 1;
 
     ry += rdy;
     if (ry > 20)
@@ -122,7 +122,7 @@ void drawRocket()
     if (ry < 5)
         rdy = 1;
 
-    gfx.drawXBitmap(x, y - ry, rocket_img, 72, 40, WHITE);
+    gfx.drawXBitmap(x, y - ry, rocket_img, 96, 54, WHITE);
 }
 
 void rocketScreen()
