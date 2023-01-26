@@ -4,7 +4,7 @@
 #include <settings.h>
 #include <lgfx.h>
 #include <i2sadc.h>
-#include "rocket_img.h"
+#include <rocket_img.h>
 
 LGFX gfx; // NTSC, 480x270, 8-bit (RGB332) color
 arduinoFFT FFT = arduinoFFT();
@@ -20,6 +20,7 @@ short int asteroidsS[ASTEROIDS];
 unsigned char frames = 0;
 unsigned char ry = 20;
 signed char rdy = 1;
+float seconds;
 
 int bucketFreq(int i)
 {
@@ -74,14 +75,17 @@ void adcWriterTask(void *param)
 
 void drawText()
 {
-    gfx.setFont(&fonts::FreeMonoBold24pt7b);
-    gfx.setTextDatum(textdatum_t::middle_center);
+    int xCenter = gfx.width() >> 1;
+    int yCenter = gfx.height() >> 1;
 
-    gfx.drawString("ASTRO BLACK", gfx.width() >> 1, gfx.height() >> 1);
-    if (millis() / 1000 % 2)
+    gfx.setFont(&fonts::Orbitron_Light_32);
+    gfx.setTextDatum(textdatum_t::middle_center);
+    gfx.drawString("ASTRO BLACK", xCenter, yCenter);
+
+    if ((long)seconds % 2)
     {
-        gfx.setTextSize(3);
-        gfx.drawString("PRESS START", 50, 190);
+        gfx.setFont(&fonts::FreeMonoBold18pt7b);
+        gfx.drawString("PRESS START", xCenter, yCenter + 24);
     }
 }
 
@@ -91,12 +95,11 @@ void drawAsteroids()
     {
         if (asteroidsX[i] <= 0)
         {
-            asteroidsX[i] = random(240, 340);
-            asteroidsY[i] = random(1, 255);
-            asteroidsZ[i] = random(1, 4);
+            asteroidsX[i] = random(480, 480 << 1);
+            asteroidsY[i] = random(0, 270);
         }
 
-        if (asteroidsX[i] <= 240 && asteroidsX[i] > 0)
+        if (asteroidsX[i] <= 480 && asteroidsX[i] > 0)
             gfx.fillCircle(asteroidsX[i], asteroidsY[i], asteroidsS[i], WHITE);
 
         asteroidsX[i] -= asteroidsZ[i];
@@ -105,36 +108,39 @@ void drawAsteroids()
 
 void drawRocket()
 {
-    unsigned char rx = (gfx.width() - 72) >> 1;
-    unsigned char y = (gfx.height() - 40) >> 1;
+    int x = (gfx.width() - 72) >> 1;
+    int y = (gfx.height() - 40) >> 1;
+
     ry += rdy;
     if (ry > 20)
         rdy = -1;
     if (ry < 5)
         rdy = 1;
-    gfx.drawBitmap(rx, y - ry, rocket_img, 72, 40, WHITE);
+
+    gfx.drawXBitmap(x, y - ry, rocket_img, 72, 40, WHITE);
 }
 
 void rocketScreen()
 {
     frames++;
 
-    // if (frames > 2)
-    // {
-    gfx.clearDisplay();
-    frames = 0;
-    drawRocket();
-    drawText();
-    // }
+    if (frames > 1)
+    {
+        frames = 0;
+        gfx.clearDisplay();
+        drawRocket();
+        drawText();
+    }
 
     drawAsteroids();
-
-    // gfx.waitDisplay();
 }
 
 void setup()
 {
+    // Setup Serial
     Serial.begin(115200);
+    Serial.println();
+
     esp_wifi_stop(); // Turn off the WiFi
     btStop();        // Turn off the BT
     // i2sInit(); // Setup I2S
@@ -142,11 +148,10 @@ void setup()
 
     for (int i = 0; i < ASTEROIDS; i++)
     {
-        asteroidsX[i] = random(1, 239);
-        asteroidsY[i] = random(1, 95);
+        asteroidsX[i] = random(480, 480 << 1);
+        asteroidsY[i] = random(0, 270);
         asteroidsZ[i] = random(1, 3);
-        asteroidsS[i] = random(0, 2);
-        ;
+        asteroidsS[i] = random(0, 3);
     }
 
     gfx.setColorDepth(lgfx::color_depth_t::rgb332_1Byte);
@@ -160,8 +165,7 @@ void setup()
 void loop()
 {
     // Get the current time and calculate a scaling factor
-    unsigned long time = millis();
-    float partial_second = (float)(time % 1000) / 1000.0;
+    seconds = (float)(millis() % 1000) / 1000.0;
 
     rocketScreen();
 }
