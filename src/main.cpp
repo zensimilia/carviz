@@ -11,8 +11,9 @@ arduinoFFT FFT = arduinoFFT();
 TaskHandle_t adcTaskHandle;
 
 // Sprites
-static LGFX_Sprite rocket(&display);
-static LGFX_Sprite header(&display);
+static LGFX_Sprite canvas(&display);
+static LGFX_Sprite rocket(&canvas);
+static LGFX_Sprite header(&canvas);
 
 // Struct for asteroids params: position, speed, radius and Sprite
 struct asteroid_t
@@ -59,8 +60,10 @@ void adcWriterTask(void *param)
     {
         double_t totalVU = 0.0;
         uint16_t maxBin = 0;
+        size_t bytes_read;
 
-        adcRead((int16_t *)vReal, SAMPLES);
+        // adcRead((int16_t *)vReal, SAMPLES);
+        i2s_read(I2S_NUM_0, &vReal, sizeof(vReal), &bytes_read, 15);
         memset(&vImag, 0, sizeof(double)); // Fill the vImag with zeroes (quick way)
 
         // Compute FFT
@@ -103,10 +106,10 @@ void adcWriterTask(void *param)
 void drawHeader()
 {
     uint8_t px = screenW >> 1;
-    uint8_t py = screenH >> 1;
+    uint8_t py = (screenH >> 1) + 10;
 
     header.clear();
-    header.setTextSize(0.8);
+    header.setTextSize(0.7);
     header.setFont(&fonts::Orbitron_Light_24);
     header.drawString("ASTRO BLACK", px, 0);
 
@@ -131,17 +134,16 @@ void drawAsteroids()
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
         a = &asteroids[i];
+        a->x -= a->z;
 
-        if (a->x < 0)
+        if (a->x < -10)
         {
-            a->x = rand() & (screenW << 1) + screenW;
+            a->x = rand() % screenW + screenW;
             a->y = rand() % screenH;
         }
 
         if (a->x <= screenW)
-            a->sprite.pushSprite(&display, a->x, a->y, TFT_BLACK);
-
-        a->x -= a->z;
+            a->sprite.pushSprite(&canvas, a->x, a->y, TFT_BLACK);
     }
 }
 
@@ -198,23 +200,17 @@ void rocketScreen()
     while (true)
     {
 
-        frames++;
-
-        if (frames > 5)
+        if (millis() - frames >= 1000 / FPS)
         {
-            frames = 0;
-
-            display.clear();
-            display.startWrite();
+            canvas.clear();
 
             drawAsteroids();
             drawRocket();
             drawHeader();
 
-            display.endWrite();
+            canvas.pushSprite(0, 0);
+            frames = millis();
         }
-
-        display.display();
     }
 
     frames = 0;
@@ -238,14 +234,18 @@ void setup()
 
     esp_wifi_stop(); // Turn off the WiFi
     btStop();        // Turn off the BT
-    // i2sInit(); // Setup I2S
-    // xTaskCreatePinnedToCore(adcWriterTask, "ADC Writer Task", 4096, NULL, 1, &adcTaskHandle, 1);
+    // i2sInit();    // Setup I2S
+    // xTaskCreatePinnedToCore(adcWriterTask, "ADC Writer Task", 2048, NULL, 1, &adcTaskHandle, 1);
 
-    display.setColorDepth(lgfx::rgb332_1Byte);
     display.init();
 
     screenW = display.width();
     screenH = display.height();
+
+    canvas.setColorDepth(lgfx::rgb332_1Byte);
+    canvas.createSprite(screenW, screenH);
+    canvas.fillScreen(TFT_BLACK);
+    canvas.pushSprite(0, 0);
 
     delay(1000);
 }
