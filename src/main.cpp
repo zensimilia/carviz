@@ -6,14 +6,13 @@
 #include <i2sadc.h>
 #include <rocket_img.h>
 
-LGFX gfx; // NTSC, 480x270, 8-bit (RGB332) color
+LGFX display; // NTSC, 480x270 / 240x160, 8-bit (RGB332) color
 arduinoFFT FFT = arduinoFFT();
-TaskHandle_t adcWriterTaskHandle;
+TaskHandle_t adcTaskHandle;
 
 // Sprites
-static LGFX_Sprite astro(&gfx);
-static LGFX_Sprite rocket(&astro);
-static LGFX_Sprite header(&astro);
+static LGFX_Sprite rocket(&display);
+static LGFX_Sprite header(&display);
 
 #define ASTEROIDS_QTY 16
 struct asteroid_t
@@ -26,7 +25,7 @@ struct asteroid_t
 };
 asteroid_t asteroids[ASTEROIDS_QTY];
 
-uint8_t frames = 0;
+uintmax_t frames = 0;
 uint8_t ry = 20;
 int8_t rdy = 1;
 float_t seconds;
@@ -84,30 +83,32 @@ void adcWriterTask(void *param)
     }
 }
 
-void drawText()
+void drawHeader()
 {
-    int16_t xCenter = screenW >> 1;
-    int16_t yCenter = screenH >> 1;
+    uint8_t centerX = screenW >> 1;
+    uint8_t centerY = screenH >> 1;
 
     header.clear();
     header.setTextSize(0.8);
     header.setFont(&fonts::Orbitron_Light_24);
-    header.drawString("ASTRO BLACK", xCenter, 0);
+    header.drawString("ASTRO BLACK", centerX, 0);
 
-    if ((long)seconds % 2)
+    if ((millis() / 1000) % 2)
     {
         header.setTextSize(1);
         header.setFont(&fonts::Font8x8C64);
-        header.drawString("PRESS START", xCenter, 24);
+        header.drawString("PRESS START", centerX, 24);
     }
 
-    header.pushSprite(0, yCenter, TFT_TRANSPARENT);
+    header.pushSprite(0, centerY, TFT_BLACK);
 }
 
 void drawAsteroids()
 {
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
+        asteroids[i].sprite.clear();
+
         if (asteroids[i].x <= 0)
         {
             asteroids[i].x = random(screenW, screenW << 1);
@@ -115,7 +116,7 @@ void drawAsteroids()
         }
 
         if (asteroids[i].x <= screenW && asteroids[i].x > 0)
-            asteroids[i].sprite.pushSprite(&astro, asteroids[i].x, asteroids[i].y, TFT_TRANSPARENT);
+            asteroids[i].sprite.pushSprite(&display, asteroids[i].x, asteroids[i].y, TFT_BLACK);
 
         asteroids[i].x -= asteroids[i].z;
     }
@@ -123,8 +124,8 @@ void drawAsteroids()
 
 void drawRocket()
 {
-    uint16_t x = (screenW - 96) >> 1;
-    uint16_t y = (screenH - 96) >> 1;
+    uint8_t x = (screenW - 96) >> 1;
+    uint8_t y = (screenH - 96) >> 1;
 
     ry += rdy;
     if (ry > 20)
@@ -132,23 +133,19 @@ void drawRocket()
     if (ry < 5)
         rdy = 1;
 
-    rocket.pushSprite(x, y - ry, TFT_TRANSPARENT);
+    rocket.pushSprite(x, y - ry, TFT_BLACK);
 }
 
 void rocketScreen()
 {
-    astro.createSprite(screenW, screenH);
-    astro.setBaseColor(gfx.color332(0, 0, 102));
-    astro.clear();
-
-    rocket.setColorDepth(lgfx::palette_4bit);
+    rocket.setColorDepth(lgfx::palette_1bit);
     rocket.createSprite(96, 56);
-    rocket.fillScreen(TFT_TRANSPARENT);
+    rocket.fillScreen(TFT_BLACK);
     rocket.drawBitmap(0, 1, rocket_img, 96, 54, TFT_WHITE);
 
-    header.setColorDepth(lgfx::palette_4bit);
+    header.setColorDepth(lgfx::palette_1bit);
     header.createSprite(screenW, screenH >> 1);
-    header.fillScreen(TFT_TRANSPARENT);
+    header.fillScreen(TFT_BLACK);
     header.setTextColor(TFT_WHITE);
     header.setTextDatum(textdatum_t::top_center);
 
@@ -158,9 +155,9 @@ void rocketScreen()
         asteroids[i].y = random(0, screenH);
         asteroids[i].z = random(1, 4);
         asteroids[i].r = random(0, 4);
-        asteroids[i].sprite.setColorDepth(lgfx::palette_4bit);
+        asteroids[i].sprite.setColorDepth(lgfx::palette_1bit);
         asteroids[i].sprite.createSprite(10, 10);
-        asteroids[i].sprite.fillScreen(TFT_TRANSPARENT);
+        asteroids[i].sprite.fillScreen(TFT_BLACK);
         asteroids[i].sprite.fillCircle(5, 5, asteroids[i].r, TFT_WHITE);
     }
 
@@ -168,30 +165,31 @@ void rocketScreen()
     {
 
         frames++;
-        seconds = millis() / 1000;
 
         if (frames > 5)
         {
             frames = 0;
-            astro.clear();
+
+            display.clear();
+            display.startWrite();
 
             drawAsteroids();
             drawRocket();
-            drawText();
+            drawHeader();
+
+            display.endWrite();
         }
 
-        astro.pushRotateZoom(0, 1, 1, TFT_TRANSPARENT);
-
-        gfx.display();
+        display.display();
     }
 
+    frames = 0;
     rocket.deleteSprite();
     header.deleteSprite();
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
         asteroids[i].sprite.deleteSprite();
     }
-    astro.deleteSprite();
 }
 
 void setup()
@@ -203,15 +201,13 @@ void setup()
     esp_wifi_stop(); // Turn off the WiFi
     btStop();        // Turn off the BT
     // i2sInit(); // Setup I2S
-    // xTaskCreatePinnedToCore(adcWriterTask, "ADC Writer Task", 4096, NULL, 1, &adcWriterTaskHandle, 1);
+    // xTaskCreatePinnedToCore(adcWriterTask, "ADC Writer Task", 4096, NULL, 1, &adcTaskHandle, 1);
 
-    gfx.setColorDepth(lgfx::color_depth_t::rgb332_1Byte);
-    gfx.init();
+    display.setColorDepth(lgfx::rgb332_1Byte);
+    display.init();
 
-    screenW = gfx.width();
-    screenH = gfx.height();
-
-    // gfx.startWrite();
+    screenW = display.width();
+    screenH = display.height();
 
     delay(1000);
 }
