@@ -6,7 +6,7 @@
 #include <i2sadc.h>
 #include <rocket_img.h>
 
-LGFX display; // NTSC, 480x270 / 240x160, 8-bit (RGB332) color
+LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 arduinoFFT FFT = arduinoFFT();
 TaskHandle_t adcTaskHandle;
 
@@ -14,7 +14,7 @@ TaskHandle_t adcTaskHandle;
 static LGFX_Sprite rocket(&display);
 static LGFX_Sprite header(&display);
 
-#define ASTEROIDS_QTY 16
+// Struct for asteroids params: position, speed, radius and Sprite
 struct asteroid_t
 {
     int16_t x;
@@ -23,6 +23,8 @@ struct asteroid_t
     uint8_t r;
     LGFX_Sprite sprite;
 };
+
+#define ASTEROIDS_QTY 16
 asteroid_t asteroids[ASTEROIDS_QTY];
 
 uintmax_t frames = 0;
@@ -32,6 +34,13 @@ float_t seconds;
 uint16_t screenW;
 uint16_t screenH;
 
+/**
+ * The function returns the frequency of the bucket
+ *
+ * @param i the index of the bucket
+ *
+ * @return The frequency of the bucket.
+ */
 int bucketFreq(int i)
 {
     if (i <= 1)
@@ -39,6 +48,11 @@ int bucketFreq(int i)
     return (i - 2) * (SAMPLING_FREQ >> 1) / REAL_SAMPLES;
 }
 
+/**
+ * It reads the ADC, computes the FFT, and then computes the VU meter and spectrum analyzer values
+ *
+ * @param param The Task params, can be NULL.
+ */
 void adcWriterTask(void *param)
 {
     while (true)
@@ -83,45 +97,57 @@ void adcWriterTask(void *param)
     }
 }
 
+/**
+ * It draws a text header on the screen
+ */
 void drawHeader()
 {
-    uint8_t centerX = screenW >> 1;
-    uint8_t centerY = screenH >> 1;
+    uint8_t px = screenW >> 1;
+    uint8_t py = screenH >> 1;
 
     header.clear();
     header.setTextSize(0.8);
     header.setFont(&fonts::Orbitron_Light_24);
-    header.drawString("ASTRO BLACK", centerX, 0);
+    header.drawString("ASTRO BLACK", px, 0);
 
     if ((millis() / 1000) % 2)
     {
         header.setTextSize(1);
         header.setFont(&fonts::Font8x8C64);
-        header.drawString("PRESS START", centerX, 24);
+        header.drawString("PRESS START", px, 24);
     }
 
-    header.pushSprite(0, centerY, TFT_BLACK);
+    header.pushSprite(0, py, TFT_BLACK);
 }
 
+/**
+ * For each asteroid, if it's off the screen, put it back on the screen at a random location. If it's
+ * on the screen, draw it. Then move it to the left
+ */
 void drawAsteroids()
 {
+    asteroid_t *a;
+
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
-        asteroids[i].sprite.clear();
+        a = &asteroids[i];
 
-        if (asteroids[i].x <= 0)
+        if (a->x < 0)
         {
-            asteroids[i].x = random(screenW, screenW << 1);
-            asteroids[i].y = random(0, screenH);
+            a->x = rand() & (screenW << 1) + screenW;
+            a->y = rand() % screenH;
         }
 
-        if (asteroids[i].x <= screenW && asteroids[i].x > 0)
-            asteroids[i].sprite.pushSprite(&display, asteroids[i].x, asteroids[i].y, TFT_BLACK);
+        if (a->x <= screenW)
+            a->sprite.pushSprite(&display, a->x, a->y, TFT_BLACK);
 
-        asteroids[i].x -= asteroids[i].z;
+        a->x -= a->z;
     }
 }
 
+/**
+ * The rocket sprite is moved up and down by a small amount, and then drawn to the screen
+ */
 void drawRocket()
 {
     uint8_t x = (screenW - 96) >> 1;
@@ -136,8 +162,14 @@ void drawRocket()
     rocket.pushSprite(x, y - ry, TFT_BLACK);
 }
 
+/**
+ * It draws a rocket on the screen, and then draws a bunch of asteroids around it, then header
+ * text next to rocket
+ */
 void rocketScreen()
 {
+    asteroid_t *a;
+
     rocket.setColorDepth(lgfx::palette_1bit);
     rocket.createSprite(96, 56);
     rocket.fillScreen(TFT_BLACK);
@@ -151,14 +183,16 @@ void rocketScreen()
 
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
-        asteroids[i].x = random(0, screenW << 1);
-        asteroids[i].y = random(0, screenH);
-        asteroids[i].z = random(1, 4);
-        asteroids[i].r = random(0, 4);
-        asteroids[i].sprite.setColorDepth(lgfx::palette_1bit);
-        asteroids[i].sprite.createSprite(10, 10);
-        asteroids[i].sprite.fillScreen(TFT_BLACK);
-        asteroids[i].sprite.fillCircle(5, 5, asteroids[i].r, TFT_WHITE);
+        a = &asteroids[i];
+
+        a->x = rand() % screenW;
+        a->y = rand() % screenH;
+        a->z = rand() % 3 + 1;
+        a->r = rand() % 4;
+        a->sprite.setColorDepth(lgfx::palette_1bit);
+        a->sprite.createSprite(10, 10);
+        a->sprite.fillScreen(TFT_BLACK);
+        a->sprite.fillCircle(5, 5, a->r, TFT_WHITE);
     }
 
     while (true)
@@ -192,6 +226,10 @@ void rocketScreen()
     }
 }
 
+/**
+ * The function is called once when the MCU starts. It sets up the serial port, turns off
+ * the WiFi and Bluetooth, and initializes the display
+ */
 void setup()
 {
     // Setup Serial
@@ -212,6 +250,9 @@ void setup()
     delay(1000);
 }
 
+/**
+ * The function is called repeatedly by the Arduino
+ */
 void loop()
 {
     rocketScreen();
