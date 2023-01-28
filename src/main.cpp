@@ -228,6 +228,11 @@ void rocketScreen()
  */
 void setup()
 {
+    // Highest clockspeed
+    esp_pm_lock_handle_t powerManagementLock;
+    esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "PowerManagementLock", &powerManagementLock);
+    esp_pm_lock_acquire(powerManagementLock);
+
     // Setup Serial
     Serial.begin(115200);
     Serial.println();
