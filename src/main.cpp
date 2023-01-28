@@ -3,7 +3,6 @@
 #include <esp_wifi.h>
 #include <settings.h>
 #include <lgfx.h>
-#include <i2sadc.h>
 #include <rocket_img.h>
 
 LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
@@ -14,6 +13,7 @@ TaskHandle_t adcTaskHandle;
 static LGFX_Sprite canvas(&display);
 static LGFX_Sprite rocket(&canvas);
 static LGFX_Sprite header(&canvas);
+static LGFX_Sprite spectrum(&canvas);
 
 // Struct for asteroids params: position, speed, radius and Sprite
 struct asteroid_t
@@ -36,20 +36,6 @@ uint16_t screenW;
 uint16_t screenH;
 
 /**
- * The function returns the frequency of the bucket
- *
- * @param i the index of the bucket
- *
- * @return The frequency of the bucket.
- */
-int bucketFreq(int i)
-{
-    if (i <= 1)
-        return 0;
-    return (i - 2) * (SAMPLING_FREQ >> 1) / REAL_SAMPLES;
-}
-
-/**
  * It reads the ADC, computes the FFT, and then computes the VU meter and spectrum analyzer values
  *
  * @param param The Task params, can be NULL.
@@ -59,37 +45,36 @@ void adcWriterTask(void *param)
     while (true)
     {
         double_t totalVU = 0.0;
-        uint16_t maxBin = 0;
-        size_t bytes_read;
+        int32_t maxBin = 0;
 
-        // adcRead((int16_t *)vReal, SAMPLES);
-        i2s_read(I2S_NUM_0, &vReal, sizeof(vReal), &bytes_read, 15);
-        memset(&vImag, 0, sizeof(double)); // Fill the vImag with zeroes (quick way)
+        for (int i = 0; i < SAMPLES; i++)
+        {
+            vReal[i] = analogRead(A6);
+            vImag[i] = 0.0;
+        }
+        // memset(&vImag, 0, sizeof(double)); // Fill the vImag with zeroes (quick way)
 
         // Compute FFT
-        FFT.DCRemoval();
+        // FFT.DCRemoval();
         FFT.Windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
         FFT.Compute(vReal, vImag, SAMPLES, FFT_FORWARD);
         FFT.ComplexToMagnitude(vReal, vImag, SAMPLES);
-        FFT.MajorPeak(vReal, SAMPLES, SAMPLING_FREQ);
+        // FFT.MajorPeak(vReal, SAMPLES, SAMPLING_FREQ);
 
         // Fill spectrum bins
-        for (int i = 2; i < REAL_SAMPLES; i++)
+        for (int i = 2; i < 128; i++)
         {
-            totalVU += vReal[i];
-            int freq = bucketFreq(i);
-            int n = 0;
-            while (n < BANDS)
+            if (vReal[i] > 700.0)
             {
-                if (freq < bandFreqTable[n])
-                    break;
-                n++;
+
+                totalVU += vReal[i];
+                uint8_t n = i / (128 / BANDS);
+                bandBins[n] += vReal[i];
+                maxBin = max(bandBins[n], maxBin);
             }
-            if (n > BANDS)
-                n = BANDS;
-            bandBins[n] += (int)vReal[i];
-            maxBin = max(bandBins[n], maxBin);
         }
+
+        Serial.printf("MAXBIN: %d\n", maxBin);
 
         for (int i = 0; i < BANDS; i++)
         {
@@ -222,6 +207,39 @@ void rocketScreen()
     }
 }
 
+void spectrumScreen()
+{
+    spectrum.setColorDepth(lgfx::palette_1bit);
+    spectrum.createSprite(200, 100);
+    spectrum.fillScreen(TFT_BLACK);
+
+    uint16_t w = spectrum.width();
+    uint16_t h = spectrum.height();
+    uint16_t bw = w / BANDS;
+
+    while (true)
+    {
+
+        if (millis() - frames >= 1000 / FPS)
+        {
+            canvas.clear();
+            spectrum.clear();
+
+            for (uint8_t i = 0; i < BANDS; i++)
+            {
+                uint16_t x = i * bw;
+                spectrum.fillRect(x, 100, bw, -bandBins[i], TFT_WHITE);
+            }
+
+            spectrum.pushSprite(20, 30);
+            canvas.pushSprite(0, 0);
+            frames = millis();
+        }
+    }
+
+    frames = 0;
+}
+
 /**
  * The function is called once when the MCU starts. It sets up the serial port, turns off
  * the WiFi and Bluetooth, and initializes the display
@@ -233,14 +251,15 @@ void setup()
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "PowerManagementLock", &powerManagementLock);
     esp_pm_lock_acquire(powerManagementLock);
 
+    analogSetPinAttenuation(A6, ADC_11db);
+
     // Setup Serial
     Serial.begin(115200);
     Serial.println();
 
     esp_wifi_stop(); // Turn off the WiFi
     btStop();        // Turn off the BT
-    // i2sInit();    // Setup I2S
-    // xTaskCreatePinnedToCore(adcWriterTask, "ADC Writer Task", 2048, NULL, 1, &adcTaskHandle, 1);
+    xTaskCreatePinnedToCore(adcWriterTask, "ADC Writer Task", 2048, NULL, 1, &adcTaskHandle, 1);
 
     display.init();
 
@@ -260,5 +279,5 @@ void setup()
  */
 void loop()
 {
-    rocketScreen();
+    spectrumScreen();
 }
