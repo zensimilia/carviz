@@ -2,27 +2,19 @@
 
 #define FPS 30
 
-// Quick colors
-#define BLACK 0x00
-#define WHITE 0xFF
-#define GREY 0xB6
-#define RED 0xE0
-#define GREEN 0x1C
-#define BLUE 0x03
-
-// Invert color macros
-#define INVERT(color) (0xFF - color)
-
 // Analog to digital
-#define SAMPLING_FREQ 44100
-#define SAMPLES 256
-#define REAL_SAMPLES (SAMPLES >> 1)
-#define ADC_INPUT ADC1_CHANNEL_0 // GPIO36
-#define ADC_PIN 36
+#define ADC_PIN 36 // GPIO36
+#define SAMPLING_FREQ 32000
+#define SAMPLES 128
 
 // FFT
 #define BANDS 16
-static int16_t bandFreqTable[BANDS] = {50, 80, 100, 150, 250, 400, 650, 800, 1250, 2000, 2500, 4000, 6250, 12000, 14000, 16000};
+// LOW 20-200 | MID 200-1000-5000 | HIGH 5000-10000-20000
+static int16_t freqTable[BANDS] = {
+    200, 600, 1000,                                 // LOW
+    1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, // MID
+    6000, 8000, 10000, 12000, 20000                 // HIGH
+};
 int32_t bandBins[BANDS] = {0};
 double_t vReal[SAMPLES];
 double_t vImag[SAMPLES];

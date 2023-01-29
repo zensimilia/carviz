@@ -6,7 +6,7 @@
 #include <rocket_img.h>
 
 LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
-arduinoFFT FFT = arduinoFFT();
+arduinoFFT FFT = arduinoFFT(vReal, vImag, SAMPLES, SAMPLING_FREQ);
 TaskHandle_t adcTaskHandle;
 
 // Sprites
@@ -34,54 +34,66 @@ int8_t rdy = 1;
 float_t seconds;
 uint16_t screenW;
 uint16_t screenH;
+uint32_t sampling_period_us;
+uint64_t newTime, oldTime;
 
 /**
  * It reads the ADC, computes the FFT, and then computes the VU meter and spectrum analyzer values
  *
  * @param param The Task params, can be NULL.
  */
-void adcWriterTask(void *param)
+void adcReadTask(void *param)
 {
-    while (true)
+    for (;;)
     {
         double_t totalVU = 0.0;
         int32_t maxBin = 0;
 
         for (int i = 0; i < SAMPLES; i++)
         {
+            newTime = micros() - oldTime;
+            oldTime = newTime;
             vReal[i] = analogRead(A6);
-            vImag[i] = 0.0;
+            // while (micros() < (newTime + sampling_period_us))
+            // {
+            // }
         }
-        // memset(&vImag, 0, sizeof(double)); // Fill the vImag with zeroes (quick way)
+        memset(&vImag, 0, sizeof(vImag)); // Fill the vImag with zeroes (quick way)
 
         // Compute FFT
-        // FFT.DCRemoval();
-        FFT.Windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-        FFT.Compute(vReal, vImag, SAMPLES, FFT_FORWARD);
-        FFT.ComplexToMagnitude(vReal, vImag, SAMPLES);
-        // FFT.MajorPeak(vReal, SAMPLES, SAMPLING_FREQ);
+        FFT.DCRemoval();
+        FFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+        FFT.Compute(FFT_FORWARD);
+        FFT.ComplexToMagnitude();
 
         // Fill spectrum bins
-        for (int i = 2; i < 128; i++)
+        for (int i = 2; i < (SAMPLES >> 1); i++)
         {
-            if (vReal[i] > 700.0)
-            {
+            uint32_t freq = (i - 2) * (SAMPLING_FREQ >> 1) / (SAMPLES >> 1);
 
+            if (vReal[i] > 2000)
+            {
                 totalVU += vReal[i];
-                uint8_t n = i / (128 / BANDS);
+                uint8_t n = 0;
+                while (n < BANDS)
+                {
+                    if (freq < freqTable[n])
+                        break;
+                    n++;
+                }
+                if (n > BANDS)
+                    n = BANDS;
                 bandBins[n] += vReal[i];
                 maxBin = max(bandBins[n], maxBin);
             }
         }
 
-        Serial.printf("MAXBIN: %d\n", maxBin);
+        avgVU = totalVU / (SAMPLES >> 1);
 
         for (int i = 0; i < BANDS; i++)
         {
             bandBins[i] = map(bandBins[i], 0, maxBin, 0, 100);
         }
-
-        avgVU = totalVU / REAL_SAMPLES;
     }
 }
 
@@ -209,9 +221,17 @@ void rocketScreen()
 
 void spectrumScreen()
 {
-    spectrum.setColorDepth(lgfx::palette_1bit);
-    spectrum.createSprite(200, 100);
-    spectrum.fillScreen(TFT_BLACK);
+    static LGFX_Sprite vu(&canvas);
+
+    int32_t prevBands[BANDS] = {0};
+
+    vu.setColorDepth(lgfx::palette_1bit);
+    vu.createSprite(208, 40);
+    vu.fillScreen(TFT_BLACK);
+
+    spectrum.setColorDepth(lgfx::rgb332_1Byte);
+    spectrum.createSprite(208, 100);
+    spectrum.fillScreen(TFT_RED);
 
     uint16_t w = spectrum.width();
     uint16_t h = spectrum.height();
@@ -222,17 +242,29 @@ void spectrumScreen()
 
         if (millis() - frames >= 1000 / FPS)
         {
+
             canvas.clear();
-            spectrum.clear();
+            spectrum.clear(TFT_RED);
+            vu.clear();
+            vu.setCursor(0, 0);
+            vu.printf("VU: %d", (int)avgVU);
 
             for (uint8_t i = 0; i < BANDS; i++)
             {
+                if (prevBands[i] < 0)
+                    prevBands[i] = 0;
+                int32_t bandHeight = (bandBins[i] < prevBands[i]) ? prevBands[i] - 1 : bandBins[i];
                 uint16_t x = i * bw;
-                spectrum.fillRect(x, 100, bw, -bandBins[i], TFT_WHITE);
+
+                spectrum.fillRect(x, 100, bw, -bandHeight, TFT_WHITE);
+                spectrum.drawLine(x - 1, 0, x - 1, 100, TFT_RED);
+                prevBands[i] = bandBins[i];
             }
 
-            spectrum.pushSprite(20, 30);
+            vu.pushSprite(16, 140);
+            spectrum.pushSprite(16, 30);
             canvas.pushSprite(0, 0);
+
             frames = millis();
         }
     }
@@ -251,7 +283,9 @@ void setup()
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "PowerManagementLock", &powerManagementLock);
     esp_pm_lock_acquire(powerManagementLock);
 
-    analogSetPinAttenuation(A6, ADC_11db);
+    pinMode(A6, INPUT);
+    analogSetPinAttenuation(A6, ADC_6db);
+    sampling_period_us = round(1000000 * (1.0 / SAMPLING_FREQ));
 
     // Setup Serial
     Serial.begin(115200);
@@ -259,7 +293,7 @@ void setup()
 
     esp_wifi_stop(); // Turn off the WiFi
     btStop();        // Turn off the BT
-    xTaskCreatePinnedToCore(adcWriterTask, "ADC Writer Task", 2048, NULL, 1, &adcTaskHandle, 1);
+    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 0, &adcTaskHandle, 0);
 
     display.init();
 
