@@ -54,9 +54,9 @@ void adcReadTask(void *param)
             newTime = micros() - oldTime;
             oldTime = newTime;
             vReal[i] = analogRead(A6);
-            // while (micros() < (newTime + sampling_period_us))
-            // {
-            // }
+            while (micros() < (newTime + sampling_period_us))
+            {
+            }
         }
         memset(&vImag, 0, sizeof(vImag)); // Fill the vImag with zeroes (quick way)
 
@@ -283,8 +283,13 @@ void setup()
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "PowerManagementLock", &powerManagementLock);
     esp_pm_lock_acquire(powerManagementLock);
 
-    pinMode(A6, INPUT);
-    analogSetPinAttenuation(A6, ADC_6db);
+    pinMode(ADC_PIN, ANALOG);
+    analogSetPinAttenuation(ADC_PIN, ADC_0db);
+
+    // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
+    if ((bool)ADC_USE_VREF)
+        analogSetVRefPin(ADC_VREF_PIN);
+
     sampling_period_us = round(1000000 * (1.0 / SAMPLING_FREQ));
 
     // Setup Serial
