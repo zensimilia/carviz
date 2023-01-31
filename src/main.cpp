@@ -1,19 +1,20 @@
 #include <Arduino.h>
+#include <settings.h>
+#include <timers.h>
 #include <arduinoFFT.h>
 #include <esp_wifi.h>
-#include <settings.h>
 #include <lgfx.h>
 #include <rocket_img.h>
 
 LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 arduinoFFT FFT = arduinoFFT(vReal, vImag, SAMPLES, SAMPLING_FREQ);
 TaskHandle_t adcTaskHandle;
+esp_pm_lock_handle_t powerManagementLock;
 
 // Sprites
 static LGFX_Sprite canvas(&display);
-static LGFX_Sprite rocket(&canvas);
-static LGFX_Sprite header(&canvas);
-static LGFX_Sprite spectrum(&canvas);
+LGFX_Sprite rocket(&canvas);
+LGFX_Sprite header(&canvas);
 
 // Struct for asteroids params: position, speed, radius and Sprite
 struct asteroid_t
@@ -25,17 +26,13 @@ struct asteroid_t
     LGFX_Sprite sprite;
 };
 
-#define ASTEROIDS_QTY 16
 asteroid_t asteroids[ASTEROIDS_QTY];
-
-uintmax_t frames = 0;
 uint8_t ry = 20;
 int8_t rdy = 1;
-float_t seconds;
-uint16_t screenW;
-uint16_t screenH;
-uint32_t sampling_period_us;
-uint64_t newTime, oldTime;
+
+static uint16_t avgVU = 0;
+static uint32_t samplingPeriodUs;
+static uint64_t frames = 0;
 
 /**
  * It reads the ADC, computes the FFT, and then computes the VU meter and spectrum analyzer values
@@ -44,21 +41,24 @@ uint64_t newTime, oldTime;
  */
 void adcReadTask(void *param)
 {
+    static uint16_t barHeight = 0;
+    static uint16_t freqStep = SAMPLING_FREQ / SAMPLES;
+    static uint64_t startUs;
+
     for (;;)
     {
-        double_t totalVU = 0.0;
-        int32_t maxBin = 0;
+        memset(&vImag, 0, sizeof(vImag));
+        memset(&bandBins, 0, sizeof(bandBins));
 
-        for (int i = 0; i < SAMPLES; i++)
+        // Collect samples
+        for (uint16_t i = 0; i < SAMPLES; i++)
         {
-            newTime = micros() - oldTime;
-            oldTime = newTime;
+            startUs = micros();
             vReal[i] = analogRead(A6);
-            while (micros() < (newTime + sampling_period_us))
+            while ((micros() - startUs) < samplingPeriodUs)
             {
             }
         }
-        memset(&vImag, 0, sizeof(vImag)); // Fill the vImag with zeroes (quick way)
 
         // Compute FFT
         FFT.DCRemoval();
@@ -67,33 +67,33 @@ void adcReadTask(void *param)
         FFT.ComplexToMagnitude();
 
         // Fill spectrum bins
-        for (int i = 2; i < (SAMPLES >> 1); i++)
+        for (uint16_t i = 2; i < (SAMPLES >> 1); i++)
         {
-            uint32_t freq = (i - 2) * (SAMPLING_FREQ >> 1) / (SAMPLES >> 1);
+            uint32_t freq = (i - 1) * freqStep;
 
-            if (vReal[i] > 2000)
+            if (vReal[i] > ADC_THRESHOLD)
             {
-                totalVU += vReal[i];
-                uint8_t n = 0;
-                while (n < BANDS)
+                uint8_t b = 0;
+                while (b < BANDS)
                 {
-                    if (freq < freqTable[n])
+                    if (freq < freqTable[b])
                         break;
-                    n++;
+                    b++;
                 }
-                if (n > BANDS)
-                    n = BANDS;
-                bandBins[n] += vReal[i];
-                maxBin = max(bandBins[n], maxBin);
+                if (b > BANDS)
+                    b = BANDS;
+                bandBins[b] += (int)vReal[i];
             }
         }
 
-        avgVU = totalVU / (SAMPLES >> 1);
-
-        for (int i = 0; i < BANDS; i++)
+        // Normalize spectrum bins
+        for (uint8_t i = 0; i < BANDS; i++)
         {
-            bandBins[i] = map(bandBins[i], 0, maxBin, 0, 100);
+            avgVU += bandBins[i];
+            bandBins[i] = map(bandBins[i] / AMPLITUDE, 0, avgVU / BANDS / AMPLITUDE, 0, 100); // TODO: fix that
         }
+
+        avgVU /= (SAMPLES >> 1);
     }
 }
 
@@ -102,8 +102,8 @@ void adcReadTask(void *param)
  */
 void drawHeader()
 {
-    uint8_t px = screenW >> 1;
-    uint8_t py = (screenH >> 1) + 10;
+    uint8_t px = SCREEN_WIDTH >> 1;
+    uint8_t py = (SCREEN_HEIGHT >> 1) + 10;
 
     header.clear();
     header.setTextSize(0.7);
@@ -135,11 +135,11 @@ void drawAsteroids()
 
         if (a->x < -10)
         {
-            a->x = rand() % screenW + screenW;
-            a->y = rand() % screenH;
+            a->x = rand() % SCREEN_WIDTH + SCREEN_WIDTH;
+            a->y = rand() % SCREEN_HEIGHT;
         }
 
-        if (a->x <= screenW)
+        if (a->x <= SCREEN_WIDTH)
             a->sprite.pushSprite(&canvas, a->x, a->y, TFT_BLACK);
     }
 }
@@ -149,8 +149,8 @@ void drawAsteroids()
  */
 void drawRocket()
 {
-    uint8_t x = (screenW - 96) >> 1;
-    uint8_t y = (screenH - 96) >> 1;
+    uint8_t x = (SCREEN_WIDTH - 96) >> 1;
+    uint8_t y = (SCREEN_HEIGHT - 96) >> 1;
 
     ry += rdy;
     if (ry > 20)
@@ -175,7 +175,7 @@ void rocketScreen()
     rocket.drawBitmap(0, 1, rocket_img, 96, 54, TFT_WHITE);
 
     header.setColorDepth(lgfx::palette_1bit);
-    header.createSprite(screenW, screenH >> 1);
+    header.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT >> 1);
     header.fillScreen(TFT_BLACK);
     header.setTextColor(TFT_WHITE);
     header.setTextDatum(textdatum_t::top_center);
@@ -184,8 +184,8 @@ void rocketScreen()
     {
         a = &asteroids[i];
 
-        a->x = rand() % screenW;
-        a->y = rand() % screenH;
+        a->x = rand() % SCREEN_WIDTH;
+        a->y = rand() % SCREEN_HEIGHT;
         a->z = rand() % 3 + 1;
         a->r = rand() % 4;
         a->sprite.setColorDepth(lgfx::palette_1bit);
@@ -196,8 +196,7 @@ void rocketScreen()
 
     while (true)
     {
-
-        if (millis() - frames >= 1000 / FPS)
+        EVERY_N_MILLISECONDS(33) // Test <timers.h>
         {
             canvas.clear();
 
@@ -206,22 +205,22 @@ void rocketScreen()
             drawHeader();
 
             canvas.pushSprite(0, 0);
-            frames = millis();
         }
     }
 
-    frames = 0;
     rocket.deleteSprite();
     header.deleteSprite();
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
-        asteroids[i].sprite.deleteSprite();
+        a = &asteroids[i];
+        a->sprite.deleteSprite();
     }
 }
 
 void spectrumScreen()
 {
-    static LGFX_Sprite vu(&canvas);
+    LGFX_Sprite spectrum(&canvas);
+    LGFX_Sprite vu(&canvas);
 
     int32_t prevBands[BANDS] = {0};
 
@@ -247,7 +246,7 @@ void spectrumScreen()
             spectrum.clear(TFT_RED);
             vu.clear();
             vu.setCursor(0, 0);
-            vu.printf("VU: %d", (int)avgVU);
+            vu.printf("VU: %d", avgVU);
 
             for (uint8_t i = 0; i < BANDS; i++)
             {
@@ -270,6 +269,8 @@ void spectrumScreen()
     }
 
     frames = 0;
+    spectrum.deleteSprite();
+    vu.deleteSprite();
 }
 
 /**
@@ -278,39 +279,40 @@ void spectrumScreen()
  */
 void setup()
 {
-    // Highest clockspeed
-    esp_pm_lock_handle_t powerManagementLock;
+    // Set highest CPU clockspeed
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "PowerManagementLock", &powerManagementLock);
     esp_pm_lock_acquire(powerManagementLock);
-
-    pinMode(ADC_PIN, ANALOG);
-    analogSetPinAttenuation(ADC_PIN, ADC_0db);
-
-    // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
-    if ((bool)ADC_USE_VREF)
-        analogSetVRefPin(ADC_VREF_PIN);
-
-    sampling_period_us = round(1000000 * (1.0 / SAMPLING_FREQ));
 
     // Setup Serial
     Serial.begin(115200);
     Serial.println();
 
-    esp_wifi_stop(); // Turn off the WiFi
-    btStop();        // Turn off the BT
+    // Turn off the BT and Wi-Fi
+    esp_wifi_stop();
+    btStop();
+
+    pinMode(ADC_PIN, ANALOG);
+    analogSetPinAttenuation(ADC_PIN, ADC_0db);
+    analogReadResolution(12);
+
+    // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
+    if ((bool)ADC_USE_VREF)
+        analogSetVRefPin(ADC_VREF_PIN);
+
+    samplingPeriodUs = round(1000000 * (1.0 / SAMPLING_FREQ));
     xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 0, &adcTaskHandle, 0);
 
+    // Setup CVBS display
     display.init();
+    display.startWrite();
 
-    screenW = display.width();
-    screenH = display.height();
-
+    // Create main canvas
     canvas.setColorDepth(lgfx::rgb332_1Byte);
-    canvas.createSprite(screenW, screenH);
+    canvas.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
     canvas.fillScreen(TFT_BLACK);
     canvas.pushSprite(0, 0);
 
-    delay(1000);
+    delay(500); // ?
 }
 
 /**
