@@ -41,23 +41,19 @@ static uint64_t frames = 0;
  */
 void adcReadTask(void *param)
 {
-    static uint16_t barHeight = 0;
-    static uint16_t freqStep = SAMPLING_FREQ / SAMPLES;
-    static uint64_t startUs;
+    // Width of each frequency bin in Hz
+    static double_t freqStep = SAMPLING_FREQ / SAMPLES;
+    // What to multiply each band by to get the next band to give an exponential increase
+    static double_t freqMult = pow(freqTable[BANDS - 1] / freqTable[0], 1 / (BANDS - 1));
 
     for (;;)
     {
         memset(&vImag, 0, sizeof(vImag));
-        memset(&bandBins, 0, sizeof(bandBins));
 
         // Collect samples
         for (uint16_t i = 0; i < SAMPLES; i++)
         {
-            startUs = micros();
-            vReal[i] = analogRead(A6);
-            while ((micros() - startUs) < samplingPeriodUs)
-            {
-            }
+            vReal[i] = adc1_get_raw(ADC1_CHANNEL_6);
         }
 
         // Compute FFT
@@ -67,22 +63,22 @@ void adcReadTask(void *param)
         FFT.ComplexToMagnitude();
 
         // Fill spectrum bins
-        for (uint16_t i = 2; i < (SAMPLES >> 1); i++)
+        for (uint32_t i = 2; i < (SAMPLES >> 1); i++)
         {
-            uint32_t freq = (i - 1) * freqStep;
+            double_t freq = (i - 2) * (freqStep * freqMult);
 
             if (vReal[i] > ADC_THRESHOLD)
             {
-                uint8_t b = 0;
-                while (b < BANDS)
+                uint8_t bin = 0;
+                while (bin < BANDS)
                 {
-                    if (freq < freqTable[b])
+                    if (freq < freqTable[bin])
                         break;
-                    b++;
+                    bin++;
                 }
-                if (b > BANDS)
-                    b = BANDS;
-                bandBins[b] += (int)vReal[i];
+                if (bin >= BANDS)
+                    bin = BANDS - 1;
+                bandBins[bin] += (int)vReal[i];
             }
         }
 
@@ -90,10 +86,11 @@ void adcReadTask(void *param)
         for (uint8_t i = 0; i < BANDS; i++)
         {
             avgVU += bandBins[i];
-            bandBins[i] = map(bandBins[i] / AMPLITUDE, 0, avgVU / BANDS / AMPLITUDE, 0, 100); // TODO: fix that
+            bandBins[i] = map(bandBins[i], 0, 150000, 0, 100); // TODO: fix that
         }
 
-        avgVU /= (SAMPLES >> 1);
+        avgVU /= BANDS;
+        vTaskDelay(1); // Watchdog issue
     }
 }
 
@@ -230,11 +227,12 @@ void spectrumScreen()
 
     spectrum.setColorDepth(lgfx::rgb332_1Byte);
     spectrum.createSprite(208, 100);
-    spectrum.fillScreen(TFT_RED);
+    spectrum.fillScreen(TFT_BLACK);
 
     uint16_t w = spectrum.width();
     uint16_t h = spectrum.height();
     uint16_t bw = w / BANDS;
+    int32_t bandHeight = 0;
 
     while (true)
     {
@@ -243,7 +241,7 @@ void spectrumScreen()
         {
 
             canvas.clear();
-            spectrum.clear(TFT_RED);
+            spectrum.clear(TFT_BLACK);
             vu.clear();
             vu.setCursor(0, 0);
             vu.printf("VU: %d", avgVU);
@@ -256,7 +254,7 @@ void spectrumScreen()
                 uint16_t x = i * bw;
 
                 spectrum.fillRect(x, 100, bw, -bandHeight, TFT_WHITE);
-                spectrum.drawLine(x - 1, 0, x - 1, 100, TFT_RED);
+                spectrum.drawLine(x - 1, 0, x - 1, 100, TFT_BLACK);
                 prevBands[i] = bandBins[i];
             }
 
@@ -288,8 +286,8 @@ void setup()
     Serial.println();
 
     // Turn off the BT and Wi-Fi
-    esp_wifi_stop();
     btStop();
+    esp_wifi_stop();
 
     pinMode(ADC_PIN, ANALOG);
     analogSetPinAttenuation(ADC_PIN, ADC_0db);
@@ -300,7 +298,7 @@ void setup()
         analogSetVRefPin(ADC_VREF_PIN);
 
     samplingPeriodUs = round(1000000 * (1.0 / SAMPLING_FREQ));
-    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 0, &adcTaskHandle, 0);
+    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, &adcTaskHandle, 0);
 
     // Setup CVBS display
     display.init();
