@@ -60,11 +60,13 @@ void drawHeader()
 void drawAsteroids()
 {
     asteroid_t *a;
+    uint32_t *bandBins = getSpectrumBins();
 
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
         a = &asteroids[i];
         a->x -= a->z;
+        a->r = 4.0 / 100 * bandBins[i];
 
         if (a->x < -10)
         {
@@ -73,7 +75,11 @@ void drawAsteroids()
         }
 
         if (a->x <= SCREEN_WIDTH)
+        {
+            a->sprite.clear();
+            a->sprite.fillCircle(5, 5, a->r, TFT_WHITE);
             a->sprite.pushSprite(&canvas, a->x, a->y, TFT_BLACK);
+        }
     }
 }
 
@@ -232,7 +238,7 @@ void setup()
     esp_wifi_stop();
 
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_0);
+    adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_11);
 
     // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
     if ((bool)ADC_USE_VREF)
@@ -258,5 +264,6 @@ void setup()
  */
 void loop()
 {
-    spectrumScreen();
+    // spectrumScreen();
+    rocketScreen();
 }

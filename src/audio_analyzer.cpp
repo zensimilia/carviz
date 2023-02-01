@@ -19,11 +19,6 @@ EventGroupHandle_t xEventGroup = xEventGroupCreate();
  */
 void adcReadTask(void *pvParameters)
 {
-    const uint32_t samplingPeriodUs = round(1000000 * (1.0 / SAMPLING_FREQ));
-    const TickType_t xDelayFrequency = pdMS_TO_TICKS(samplingPeriodUs);
-
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-
     for (;;)
     {
         // Wait for FFT ready
@@ -33,13 +28,10 @@ void adcReadTask(void *pvParameters)
         for (uint16_t i = 0; i < SAMPLES; i++)
         {
             vReal[i] = adc1_get_raw(ADC_CHANNEL);
-            xTaskDelayUntil(&xLastWakeTime, xDelayFrequency);
         }
 
         // Send collected samples to the Queue
         xQueueSend(xSamplesQueue, (void *)&vReal, (TickType_t)0);
-
-        // vTaskDelay(1); // The Watchdog issue
     }
 
     vTaskDelete(NULL);
@@ -54,7 +46,7 @@ void adcReadTask(void *pvParameters)
 void fftComputeTask(void *pvParameters)
 {
     // Width of each frequency bin in Hz with exponential increase
-    const double_t freqStep = SAMPLING_FREQ / SAMPLES * pow(freqTable[BANDS - 1] / freqTable[0], 1 / (BANDS - 1));
+    const double_t freqStep = SAMPLING_FREQ / SAMPLES;
 
     for (;;)
     {
@@ -83,7 +75,7 @@ void fftComputeTask(void *pvParameters)
                         bin++;
                     }
                     if (bin >= BANDS)
-                        bin = BANDS - 1;
+                        break;
                     bandBins[bin] += (int)vReal[i];
                 }
             }
@@ -91,7 +83,8 @@ void fftComputeTask(void *pvParameters)
             // Normalize spectrum bins
             for (uint8_t i = 0; i < BANDS; i++)
             {
-                bandBins[i] = map(bandBins[i], 0, 150000, 0, 100); // TODO: fix that
+                bandBins[i] = map(bandBins[i], 0, 200000, 0, 100); // TODO: fix that
+                bandBins[i] = constrain(bandBins[i], 0, 100);
                 avgVU += bandBins[i];
             }
 
@@ -125,8 +118,8 @@ uint32_t *getSpectrumBins() { return bandBins; }
 void beginAnalyzerTasks()
 {
     // Create a Tasks
-    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, NULL, 1);
-    xTaskCreatePinnedToCore(fftComputeTask, "FFT Compute Task", 4096, NULL, 100, NULL, 0);
+    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, NULL, 0);
+    xTaskCreatePinnedToCore(fftComputeTask, "FFT Compute Task", 4096, NULL, 100, NULL, 1);
 
     // Trigger event that FFT is ready for next computing
     xEventGroupSetBits(xEventGroup, FFT_READY);
