@@ -26,6 +26,3 @@ static int16_t freqTable[BANDS] = {
     1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, // MID 200-1000-5000
     5500, 6000, 10000, 16000                        // HIGH 5000-10000-20000
 };
-uint32_t bandBins[BANDS];
-double_t vReal[SAMPLES];
-double_t vImag[SAMPLES];

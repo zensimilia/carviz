@@ -16,3 +16,4 @@ A real-time audio spectrum analyzer with visual demo scenes and composite video 
 - https://github.com/s-marley/ESP32_FFT_VU
 - https://github.com/G6EJD/ESP32-8-Octave-Audio-Spectrum-Display
 - https://www.toptal.com/embedded/esp32-audio-sampling
+- https://forum.arduino.cc/t/how-to-get-esp32-rtos-to-do-fast-analogreads-as-well-as-blink-the-led/877199/32

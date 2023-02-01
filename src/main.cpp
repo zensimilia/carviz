@@ -1,13 +1,12 @@
 #include <Arduino.h>
 #include <settings.h>
+#include <audio_analyzer.h>
 #include <timers.h>
-#include <arduinoFFT.h>
 #include <esp_wifi.h>
 #include <lgfx.h>
 #include <rocket_img.h>
 
 LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
-arduinoFFT FFT = arduinoFFT(vReal, vImag, SAMPLES, SAMPLING_FREQ);
 esp_pm_lock_handle_t powerManagementLock;
 
 // Sprites
@@ -29,70 +28,7 @@ asteroid_t asteroids[ASTEROIDS_QTY];
 uint8_t ry = 20;
 int8_t rdy = 1;
 
-static uint16_t avgVU = 0;
 static uint64_t frames = 0;
-
-/**
- * It reads the ADC, computes the FFT, and then computes the VU meter and spectrum analyzer values
- *
- * @param param The Task params, can be NULL.
- */
-void adcReadTask(void *pvParameters)
-{
-    // Width of each frequency bin in Hz with exponential increase
-    const double_t freqStep = SAMPLING_FREQ / SAMPLES * pow(freqTable[BANDS - 1] / freqTable[0], 1 / (BANDS - 1));
-    const uint32_t samplingPeriodUs = round(1000000 * (1.0 / SAMPLING_FREQ));
-    const TickType_t xDelayFrequency = pdMS_TO_TICKS(samplingPeriodUs);
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-
-    for (;;)
-    {
-        memset(&vImag, 0, sizeof(vImag));
-
-        // Collect samples
-        for (uint16_t i = 0; i < SAMPLES; i++)
-        {
-            vReal[i] = adc1_get_raw(ADC_CHANNEL);
-            xTaskDelayUntil(&xLastWakeTime, xDelayFrequency);
-        }
-
-        // Compute FFT
-        FFT.DCRemoval();
-        FFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-        FFT.Compute(FFT_FORWARD);
-        FFT.ComplexToMagnitude();
-
-        // Fill spectrum bins
-        for (uint32_t i = 2; i < (SAMPLES >> 1); i++)
-        {
-            double_t freq = (i - 2) * freqStep;
-
-            if (vReal[i] > ADC_THRESHOLD)
-            {
-                uint8_t bin = 0;
-                while (bin < BANDS)
-                {
-                    if (freq < (double_t)freqTable[bin])
-                        break;
-                    bin++;
-                }
-                if (bin >= BANDS)
-                    bin = BANDS - 1;
-                bandBins[bin] += (int)vReal[i];
-            }
-        }
-
-        // Normalize spectrum bins
-        for (uint8_t i = 0; i < BANDS; i++)
-        {
-            bandBins[i] = map(bandBins[i], 0, 150000, 0, 100); // TODO: fix that
-            avgVU += bandBins[i];
-        }
-
-        avgVU /= BANDS;
-        // vTaskDelay(1); // The Watchdog issue
-    }
-}
 
 /**
  * It draws a text header on the screen
@@ -237,6 +173,7 @@ void spectrumScreen()
     uint16_t w = spectrum.width();
     uint16_t h = spectrum.height();
     uint16_t bw = w / BANDS;
+    uint32_t *bandBins = getSpectrumBins();
     int32_t bandHeight = 0;
 
     while (true)
@@ -249,7 +186,7 @@ void spectrumScreen()
             spectrum.clear(TFT_BLACK);
             vu.clear();
             vu.setCursor(0, 0);
-            vu.printf("VU: %d", avgVU);
+            vu.printf("VU: %d", getAvgVU());
 
             for (uint8_t i = 0; i < BANDS; i++)
             {
@@ -301,7 +238,7 @@ void setup()
     if ((bool)ADC_USE_VREF)
         analogSetVRefPin(ADC_VREF_PIN);
 
-    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, NULL, 0);
+    beginAnalyzerTasks();
 
     // Setup CVBS display
     display.init();
@@ -313,7 +250,7 @@ void setup()
     canvas.fillScreen(TFT_BLACK);
     canvas.pushSprite(0, 0);
 
-    delay(500); // ?
+    delay(500); // Wait for initialization to complete?
 }
 
 /**
