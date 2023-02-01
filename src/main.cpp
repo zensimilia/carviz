@@ -31,7 +31,6 @@ uint8_t ry = 20;
 int8_t rdy = 1;
 
 static uint16_t avgVU = 0;
-static uint32_t samplingPeriodUs;
 static uint64_t frames = 0;
 
 /**
@@ -42,9 +41,13 @@ static uint64_t frames = 0;
 void adcReadTask(void *param)
 {
     // Width of each frequency bin in Hz
-    static double_t freqStep = SAMPLING_FREQ / SAMPLES;
+    const double_t freqStep = SAMPLING_FREQ / SAMPLES;
     // What to multiply each band by to get the next band to give an exponential increase
-    static double_t freqMult = pow(freqTable[BANDS - 1] / freqTable[0], 1 / (BANDS - 1));
+    const double_t freqMult = pow(freqTable[BANDS - 1] / freqTable[0], 1 / (BANDS - 1));
+
+    const uint32_t samplingPeriodUs = round(1000000 * (1.0 / SAMPLING_FREQ));
+    const TickType_t xDelayFrequency = pdMS_TO_TICKS(samplingPeriodUs);
+    TickType_t xLastWakeTime = xTaskGetTickCount();
 
     for (;;)
     {
@@ -53,7 +56,8 @@ void adcReadTask(void *param)
         // Collect samples
         for (uint16_t i = 0; i < SAMPLES; i++)
         {
-            vReal[i] = adc1_get_raw(ADC1_CHANNEL_6);
+            vReal[i] = adc1_get_raw(ADC_CHANNEL);
+            xTaskDelayUntil(&xLastWakeTime, xDelayFrequency);
         }
 
         // Compute FFT
@@ -65,14 +69,14 @@ void adcReadTask(void *param)
         // Fill spectrum bins
         for (uint32_t i = 2; i < (SAMPLES >> 1); i++)
         {
-            double_t freq = (i - 2) * (freqStep * freqMult);
+            double_t freq = (i - 2) * freqStep * freqMult;
 
             if (vReal[i] > ADC_THRESHOLD)
             {
                 uint8_t bin = 0;
                 while (bin < BANDS)
                 {
-                    if (freq < freqTable[bin])
+                    if (freq < (double_t)freqTable[bin])
                         break;
                     bin++;
                 }
@@ -85,12 +89,12 @@ void adcReadTask(void *param)
         // Normalize spectrum bins
         for (uint8_t i = 0; i < BANDS; i++)
         {
-            avgVU += bandBins[i];
             bandBins[i] = map(bandBins[i], 0, 150000, 0, 100); // TODO: fix that
+            avgVU += bandBins[i];
         }
 
         avgVU /= BANDS;
-        vTaskDelay(1); // Watchdog issue
+        // vTaskDelay(1); // The Watchdog issue
     }
 }
 
@@ -214,6 +218,11 @@ void rocketScreen()
     }
 }
 
+/**
+ * It creates two sprites, one for the spectrum and one for the VU meter. It then loops through the
+ * array of band bins and draws a rectangle for each band bin. It then draws a line between each band
+ * bin. It then draws the VU meter and pushes the sprites to the canvas
+ */
 void spectrumScreen()
 {
     LGFX_Sprite spectrum(&canvas);
@@ -289,15 +298,13 @@ void setup()
     btStop();
     esp_wifi_stop();
 
-    pinMode(ADC_PIN, ANALOG);
-    analogSetPinAttenuation(ADC_PIN, ADC_0db);
-    analogReadResolution(12);
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_0);
 
     // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
     if ((bool)ADC_USE_VREF)
         analogSetVRefPin(ADC_VREF_PIN);
 
-    samplingPeriodUs = round(1000000 * (1.0 / SAMPLING_FREQ));
     xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, &adcTaskHandle, 0);
 
     // Setup CVBS display

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <soc/adc_channel.h>
+
 #define FPS 30
 #define VOUT_PIN (DAC2)
 #define USE_PSRAM 0
@@ -9,8 +11,8 @@
 #define ASTEROIDS_QTY 16
 
 // Analog to digital
-#define ADC_PIN (A6)       // GPIO36
-#define ADC_VREF_PIN (A17) // GPIO 25,26 or 27
+#define ADC_CHANNEL (ADC1_GPIO34_CHANNEL) // Default: GPIO34
+#define ADC_VREF_PIN (A17)                // GPIO 25,26 or 27
 #define ADC_USE_VREF 0
 #define ADC_THRESHOLD 10000
 #define SAMPLING_FREQ 32000
