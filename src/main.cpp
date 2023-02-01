@@ -8,7 +8,6 @@
 
 LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 arduinoFFT FFT = arduinoFFT(vReal, vImag, SAMPLES, SAMPLING_FREQ);
-TaskHandle_t adcTaskHandle;
 esp_pm_lock_handle_t powerManagementLock;
 
 // Sprites
@@ -38,7 +37,7 @@ static uint64_t frames = 0;
  *
  * @param param The Task params, can be NULL.
  */
-void adcReadTask(void *param)
+void adcReadTask(void *pvParameters)
 {
     // Width of each frequency bin in Hz
     const double_t freqStep = SAMPLING_FREQ / SAMPLES;
@@ -305,7 +304,7 @@ void setup()
     if ((bool)ADC_USE_VREF)
         analogSetVRefPin(ADC_VREF_PIN);
 
-    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, &adcTaskHandle, 0);
+    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, NULL, 0);
 
     // Setup CVBS display
     display.init();
