@@ -39,11 +39,8 @@ static uint64_t frames = 0;
  */
 void adcReadTask(void *pvParameters)
 {
-    // Width of each frequency bin in Hz
-    const double_t freqStep = SAMPLING_FREQ / SAMPLES;
-    // What to multiply each band by to get the next band to give an exponential increase
-    const double_t freqMult = pow(freqTable[BANDS - 1] / freqTable[0], 1 / (BANDS - 1));
-
+    // Width of each frequency bin in Hz with exponential increase
+    const double_t freqStep = SAMPLING_FREQ / SAMPLES * pow(freqTable[BANDS - 1] / freqTable[0], 1 / (BANDS - 1));
     const uint32_t samplingPeriodUs = round(1000000 * (1.0 / SAMPLING_FREQ));
     const TickType_t xDelayFrequency = pdMS_TO_TICKS(samplingPeriodUs);
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -68,7 +65,7 @@ void adcReadTask(void *pvParameters)
         // Fill spectrum bins
         for (uint32_t i = 2; i < (SAMPLES >> 1); i++)
         {
-            double_t freq = (i - 2) * freqStep * freqMult;
+            double_t freq = (i - 2) * freqStep;
 
             if (vReal[i] > ADC_THRESHOLD)
             {
