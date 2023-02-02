@@ -2,7 +2,8 @@
 
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
-#include <settings.h>
+
+#include "settings.h"
 
 class LGFX : public lgfx::LGFX_Device
 {

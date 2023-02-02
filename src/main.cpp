@@ -1,10 +1,11 @@
 #include <Arduino.h>
-#include <settings.h>
-#include <audio_analyzer.h>
-#include <timers.h>
 #include <esp_wifi.h>
-#include <lgfx.h>
-#include <rocket_img.h>
+
+#include "settings.h"
+#include "audio_analyzer.h"
+#include "timers.h"
+#include "lgfx.h"
+#include "rocket_img.h"
 
 LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 esp_pm_lock_handle_t powerManagementLock;

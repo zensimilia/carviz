@@ -2,7 +2,8 @@
 
 #include <arduinoFFT.h>
 #include <driver/adc_common.h>
-#include <settings.h>
+
+#include "settings.h"
 
 #define FFT_READY (1 << 0)
 
