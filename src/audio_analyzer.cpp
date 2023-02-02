@@ -118,8 +118,8 @@ uint32_t *getSpectrumBins() { return bandBins; }
 void beginAnalyzerTasks()
 {
     // Create a Tasks
-    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 100, NULL, 0);
-    xTaskCreatePinnedToCore(fftComputeTask, "FFT Compute Task", 4096, NULL, 100, NULL, 1);
+    xTaskCreatePinnedToCore(adcReadTask, "ADC Read Task", 4096, NULL, 25, NULL, 0);
+    xTaskCreatePinnedToCore(fftComputeTask, "FFT Compute Task", 4096, NULL, 25, NULL, 1);
 
     // Trigger event that FFT is ready for next computing
     xEventGroupSetBits(xEventGroup, FFT_READY);
