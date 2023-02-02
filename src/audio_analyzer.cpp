@@ -52,7 +52,7 @@ void fftComputeTask(void *pvParameters)
     {
         if (xQueueReceive(xSamplesQueue, &vReal, portMAX_DELAY) == pdTRUE)
         {
-            memset(&vImag, 0, sizeof(vImag)); // Fill vImag with zeroes
+            memset(&vImag, 0, SAMPLES * sizeof(double_t));
 
             // Compute FFT
             FFT.DCRemoval();
