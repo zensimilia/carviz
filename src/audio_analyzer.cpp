@@ -5,6 +5,7 @@ static double_t vReal[SAMPLES];
 static double_t vImag[SAMPLES];
 static uint32_t bandBins[BANDS];
 static uint16_t avgVU = 0;
+static uint8_t samplingPeriodUs = round(1.0 / SAMPLING_FREQ * 1000000);
 
 // Create arduinoFFT instance
 arduinoFFT FFT = arduinoFFT(vReal, vImag, SAMPLES, SAMPLING_FREQ);
@@ -20,6 +21,8 @@ EventGroupHandle_t xEventGroup = xEventGroupCreate();
  */
 void adcReadTask(void *pvParameters)
 {
+    adc_power_acquire();
+
     for (;;)
     {
         // Waiting for the FFT to be ready
@@ -28,12 +31,22 @@ void adcReadTask(void *pvParameters)
         // Collect samples
         for (uint16_t i = 0; i < SAMPLES; i++)
         {
-            vReal[i] = adc1_get_raw(ADC_CHANNEL);
+            uint64_t sampleTime = micros();
+            int32_t val;
+
+            adc2_get_raw(ADC2_CHANNEL_4, ADC_WIDTH_12Bit, &val);
+            vReal[i] = val;
+
+            while ((micros() - sampleTime) < samplingPeriodUs)
+            {
+            }
         }
 
         // Send collected samples to the Queue
         xQueueSend(xSamplesQueue, (void *)&vReal, (TickType_t)0);
     }
+
+    adc_power_release();
 
     vTaskDelete(NULL);
 }
@@ -53,21 +66,21 @@ void fftComputeTask(void *pvParameters)
     {
         if (xQueueReceive(xSamplesQueue, &vReal, portMAX_DELAY) == pdTRUE)
         {
-            memset((void *)&vImag, 0, sizeof(vImag));
+            memset(&vImag, 0, sizeof(vImag));
 
             // Compute FFT
-            FFT.DCRemoval();
+            // FFT.DCRemoval();
             FFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
             FFT.Compute(FFT_FORWARD);
             FFT.ComplexToMagnitude();
 
             // Fill spectrum bins
-            for (uint16_t i = 1; i < (SAMPLES >> 1); i++)
+            for (uint16_t i = 2; i < (SAMPLES >> 1); i++)
             {
                 if (vReal[i] > ADC_THRESHOLD)
                 {
                     uint8_t bin = 0;
-                    uint16_t freq = (i - 1) * df;
+                    uint16_t freq = (i - 2) * df;
 
                     while (bin < BANDS)
                     {

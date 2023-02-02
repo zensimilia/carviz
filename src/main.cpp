@@ -239,9 +239,9 @@ void setup()
     btStop();
     esp_wifi_stop();
 
-    adc1_config_width(ADC_WIDTH_MAX);
-    adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_11);
-    adc_set_clk_div(1);
+    // adc1_config_width(ADC_WIDTH_BIT_12);
+    // adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_0);
+    adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_6db);
 
     // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
     if ((bool)ADC_USE_VREF)
@@ -267,6 +267,6 @@ void setup()
  */
 void loop()
 {
-    // spectrumScreen();
-    rocketScreen();
+    spectrumScreen();
+    // rocketScreen();
 }
