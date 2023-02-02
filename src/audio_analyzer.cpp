@@ -1,4 +1,5 @@
 #include "audio_analyzer.h"
+#include "utils.h"
 
 static double_t vReal[SAMPLES];
 static double_t vImag[SAMPLES];
@@ -21,7 +22,7 @@ void adcReadTask(void *pvParameters)
 {
     for (;;)
     {
-        // Wait for FFT ready
+        // Waiting for the FFT to be ready
         xEventGroupWaitBits(xEventGroup, FFT_READY, pdTRUE, pdTRUE, portMAX_DELAY);
 
         // Collect samples
@@ -45,14 +46,14 @@ void adcReadTask(void *pvParameters)
  */
 void fftComputeTask(void *pvParameters)
 {
-    // Width of each frequency bin in Hz with exponential increase
-    const double_t freqStep = SAMPLING_FREQ / SAMPLES;
+    // Width of each frequency bin in Hz
+    const uint16_t df = SAMPLING_FREQ / SAMPLES;
 
     for (;;)
     {
         if (xQueueReceive(xSamplesQueue, &vReal, portMAX_DELAY) == pdTRUE)
         {
-            memset(&vImag, 0, SAMPLES * sizeof(double_t));
+            memset((void *)&vImag, 0, SAMPLES * sizeof(double_t *));
 
             // Compute FFT
             FFT.DCRemoval();
@@ -61,22 +62,24 @@ void fftComputeTask(void *pvParameters)
             FFT.ComplexToMagnitude();
 
             // Fill spectrum bins
-            for (uint32_t i = 2; i < (SAMPLES >> 1); i++)
+            for (uint16_t i = 1; i < (SAMPLES >> 1); i++)
             {
-                double_t freq = (i - 2) * freqStep;
-
                 if (vReal[i] > ADC_THRESHOLD)
                 {
                     uint8_t bin = 0;
+                    uint16_t freq = (i - 1) * df;
+
                     while (bin < BANDS)
                     {
-                        if (freq < (double_t)freqTable[bin])
+                        if (freq < freqTable[bin])
                             break;
                         bin++;
                     }
+
                     if (bin >= BANDS)
                         break;
-                    bandBins[bin] += (int)vReal[i];
+
+                    bandBins[bin] += isqrt(vReal[i] * vReal[i] + vImag[i] * vImag[i]);
                 }
             }
 

@@ -229,6 +229,7 @@ void setup()
     // Set highest CPU clockspeed
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "PowerManagementLock", &powerManagementLock);
     esp_pm_lock_acquire(powerManagementLock);
+    setCpuFrequencyMhz(240);
 
     // Setup Serial
     Serial.begin(115200);
@@ -238,12 +239,13 @@ void setup()
     btStop();
     esp_wifi_stop();
 
-    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_width(ADC_WIDTH_MAX);
     adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_11);
+    adc_set_clk_div(1);
 
     // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
     if ((bool)ADC_USE_VREF)
-        analogSetVRefPin(ADC_VREF_PIN);
+        adc_vref_to_gpio(ADC_UNIT_1, ADC_VREF_PIN);
 
     beginAnalyzerTasks();
 

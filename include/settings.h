@@ -11,8 +11,8 @@
 #define ASTEROIDS_QTY 16
 
 // Analog to digital
-#define ADC_CHANNEL (ADC1_GPIO34_CHANNEL) // Default: GPIO34
-#define ADC_VREF_PIN (A17)                // GPIO 25,26 or 27
+#define ADC_CHANNEL (ADC1_GPIO34_CHANNEL) // ADC1 ONLY! Default: GPIO34
+#define ADC_VREF_PIN (GPIO_NUM_27)        // GPIO 25,26 or 27
 #define ADC_USE_VREF 0
 #define ADC_THRESHOLD 1000
 #define SAMPLING_FREQ 32000
