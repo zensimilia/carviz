@@ -167,9 +167,9 @@ void spectrumScreen()
     LGFX_Sprite spectrum(&canvas);
     LGFX_Sprite vu(&canvas);
 
-    int32_t prevBands[BANDS] = {0};
+    uint8_t prevBands[BANDS] = {0};
 
-    vu.setColorDepth(lgfx::palette_1bit);
+    vu.setColorDepth(lgfx::rgb332_1Byte);
     vu.createSprite(208, 40);
     vu.fillScreen(TFT_BLACK);
 
@@ -179,9 +179,9 @@ void spectrumScreen()
 
     uint16_t w = spectrum.width();
     uint16_t h = spectrum.height();
-    uint16_t bw = w / BANDS;
+    uint16_t bw = (w / BANDS);
     uint32_t *bandBins = getSpectrumBins();
-    int32_t bandHeight = 0;
+    uint8_t bandHeight = 0;
 
     while (true)
     {
@@ -191,20 +191,45 @@ void spectrumScreen()
 
             canvas.clear();
             spectrum.clear(TFT_BLACK);
-            vu.clear();
-            vu.setCursor(0, 0);
-            vu.printf("VU: %d", getAvgVU());
+
+            EVERY_N_MILLIS(100)
+            {
+                uint16_t *avgVU = getAvgVU();
+
+                vu.clear();
+                vu.setCursor(0, 0);
+                vu.printf("VU:%3u", *avgVU);
+                vu.setCursor(70, 0);
+                vu.print("F:20Hz-16kHz");
+
+                if (*avgVU > 95)
+                {
+                    vu.fillCircle(44, 3, 3, TFT_RED);
+                }
+            }
 
             for (uint8_t i = 0; i < BANDS; i++)
             {
-                if (prevBands[i] < 0)
-                    prevBands[i] = 0;
-                int32_t bandHeight = (bandBins[i] < prevBands[i]) ? prevBands[i] - 1 : bandBins[i];
                 uint16_t x = i * bw;
 
-                spectrum.fillRect(x, 100, bw, -bandHeight, TFT_WHITE);
+                bandHeight = (prevBands[i] + bandBins[i]) / 2;
+                spectrum.fillRect(x, 100, bw, constrain(-bandHeight, -50, 0), TFT_GREENYELLOW);
+
+                if (bandHeight > 50)
+                {
+                    spectrum.fillRect(x, 50, bw, 50 - bandHeight, TFT_YELLOW);
+                }
+
+                if (bandHeight > 80)
+                {
+                    spectrum.fillRect(x, 20, bw, 80 - bandHeight, TFT_RED);
+                }
+
                 spectrum.drawLine(x - 1, 0, x - 1, 100, TFT_BLACK);
-                prevBands[i] = bandBins[i];
+                spectrum.drawLine(x, 20, w, 20, TFT_BLACK);
+                spectrum.drawLine(x, 50, w, 50, TFT_BLACK);
+
+                prevBands[i] = bandHeight;
             }
 
             vu.pushSprite(16, 140);
@@ -241,7 +266,7 @@ void setup()
 
     // adc1_config_width(ADC_WIDTH_BIT_12);
     // adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_0);
-    adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_6db);
+    adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_0db);
 
     // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
     if ((bool)ADC_USE_VREF)

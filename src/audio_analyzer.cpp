@@ -1,11 +1,13 @@
 #include "audio_analyzer.h"
-#include "utils.h"
 
-static double_t vReal[SAMPLES];
-static double_t vImag[SAMPLES];
+double_t vReal[SAMPLES];
+double_t vImag[SAMPLES];
+uint16_t oldVU = 0;
+
 static uint32_t bandBins[BANDS];
 static uint16_t avgVU = 0;
-static uint8_t samplingPeriodUs = round(1.0 / SAMPLING_FREQ * 1000000);
+
+// const uint8_t samplingPeriodUs = round(1.0 / SAMPLING_FREQ * 1000000);
 
 // Create arduinoFFT instance
 arduinoFFT FFT = arduinoFFT(vReal, vImag, SAMPLES, SAMPLING_FREQ);
@@ -25,21 +27,19 @@ void adcReadTask(void *pvParameters)
 
     for (;;)
     {
+        int32_t val;
+        // uint64_t sampleTime;
+
         // Waiting for the FFT to be ready
         xEventGroupWaitBits(xEventGroup, FFT_READY, pdTRUE, pdTRUE, portMAX_DELAY);
 
         // Collect samples
         for (uint16_t i = 0; i < SAMPLES; i++)
         {
-            uint64_t sampleTime = micros();
-            int32_t val;
-
+            // sampleTime = micros();
             adc2_get_raw(ADC2_CHANNEL_4, ADC_WIDTH_12Bit, &val);
             vReal[i] = val;
-
-            while ((micros() - sampleTime) < samplingPeriodUs)
-            {
-            }
+            // while ((micros() - sampleTime) < samplingPeriodUs) {}
         }
 
         // Send collected samples to the Queue
@@ -69,10 +69,8 @@ void fftComputeTask(void *pvParameters)
             memset(&vImag, 0, sizeof(vImag));
 
             // Compute FFT
-            // FFT.DCRemoval();
             FFT.Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
             FFT.Compute(FFT_FORWARD);
-            FFT.ComplexToMagnitude();
 
             // Fill spectrum bins
             for (uint16_t i = 2; i < (SAMPLES >> 1); i++)
@@ -92,19 +90,24 @@ void fftComputeTask(void *pvParameters)
                     if (bin >= BANDS)
                         break;
 
-                    bandBins[bin] += vReal[i];
+                    bandBins[bin] += sqrt(pow(vReal[i], 2) + pow(vImag[i], 2));
                 }
             }
 
             // Normalize spectrum bins
             for (uint8_t i = 0; i < BANDS; i++)
             {
-                bandBins[i] = map(bandBins[i], 0, 200000, 0, 100); // TODO: fix that
-                bandBins[i] = constrain(bandBins[i], 0, 100);
                 avgVU += bandBins[i];
+
+                bandBins[i] /= AMPLITUDE;
+                bandBins[i] = constrain(bandBins[i], 0, 100);
             }
 
-            avgVU /= BANDS;
+            // avgVU /= BANDS;
+
+            float t = avgVU / (SAMPLES >> 1);
+            avgVU = max(t, (oldVU * 3 + t) / 4);
+            oldVU = avgVU;
 
             // Trigger event that FFT is ready for next computing
             xEventGroupSetBits(xEventGroup, FFT_READY);
@@ -119,7 +122,7 @@ void fftComputeTask(void *pvParameters)
  *
  * @return The average VU value.
  */
-uint16_t getAvgVU() { return avgVU; };
+uint16_t *getAvgVU() { return &avgVU; };
 
 /**
  * This function returns a pointer to the array of spectrum data

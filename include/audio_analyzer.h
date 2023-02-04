@@ -11,5 +11,5 @@ void adcReadTask(void *pvParameters);
 void fftComputeTask(void *pvParameters);
 void beginAnalyzerTasks();
 
-uint16_t getAvgVU();
+uint16_t *getAvgVU();
 uint32_t *getSpectrumBins();
