@@ -264,9 +264,7 @@ void setup()
     btStop();
     esp_wifi_stop();
 
-    // adc1_config_width(ADC_WIDTH_BIT_12);
-    // adc1_config_channel_atten(ADC_CHANNEL, ADC_ATTEN_DB_0);
-    adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_0db);
+    adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_2_5db);
 
     // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
     if ((bool)ADC_USE_VREF)

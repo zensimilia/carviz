@@ -7,7 +7,7 @@ uint16_t oldVU = 0;
 static uint32_t bandBins[BANDS];
 static uint16_t avgVU = 0;
 
-// const uint8_t samplingPeriodUs = round(1.0 / SAMPLING_FREQ * 1000000);
+const uint8_t samplingPeriodUs = round(1.0 / SAMPLING_FREQ * 1000000);
 
 // Create arduinoFFT instance
 arduinoFFT FFT = arduinoFFT(vReal, vImag, SAMPLES, SAMPLING_FREQ);
@@ -28,7 +28,7 @@ void adcReadTask(void *pvParameters)
     for (;;)
     {
         int32_t val;
-        // uint64_t sampleTime;
+        uint64_t ts;
 
         // Waiting for the FFT to be ready
         xEventGroupWaitBits(xEventGroup, FFT_READY, pdTRUE, pdTRUE, portMAX_DELAY);
@@ -36,10 +36,12 @@ void adcReadTask(void *pvParameters)
         // Collect samples
         for (uint16_t i = 0; i < SAMPLES; i++)
         {
-            // sampleTime = micros();
-            adc2_get_raw(ADC2_CHANNEL_4, ADC_WIDTH_12Bit, &val);
+            ts = micros();
+            adc2_get_raw(ADC2_CHANNEL_4, ADC_WIDTH_10Bit, &val);
             vReal[i] = val;
-            // while ((micros() - sampleTime) < samplingPeriodUs) {}
+            while ((micros() - ts) < samplingPeriodUs)
+            {
+            }
         }
 
         // Send collected samples to the Queue
