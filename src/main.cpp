@@ -40,13 +40,14 @@ void drawHeader()
 {
     uint8_t px = SCREEN_WIDTH >> 1;
     uint8_t py = (SCREEN_HEIGHT >> 1) + 10;
+    uint16_t blinkDelayMs = 600;
 
     header.clear();
     header.setTextSize(0.7);
     header.setFont(&fonts::Orbitron_Light_24);
     header.drawString("ASTRO BLACK", px, 0);
 
-    if ((millis() / 1000) % 2)
+    if ((millis() / blinkDelayMs) % 2)
     {
         header.setTextSize(1);
         header.setFont(&fonts::Font8x8C64);
@@ -69,7 +70,7 @@ void drawAsteroids()
     {
         a = &asteroids[i];
         a->x -= a->z;
-        a->r = 4.0 / 100 * bandBins[i];
+        a->r = 3.0 / 100 * bandBins[i];
 
         if (a->x < -10)
         {
@@ -138,7 +139,7 @@ void rocketScreen()
 
     while (true)
     {
-        EVERY_N_MILLISECONDS(33) // Test <timers.h>
+        if (millis() - frames >= 1000 / FPS)
         {
             canvas.clear();
 
@@ -147,6 +148,8 @@ void rocketScreen()
             drawHeader();
 
             canvas.pushSprite(0, 0);
+
+            frames = millis();
         }
     }
 
