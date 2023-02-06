@@ -37,7 +37,7 @@ void adcReadTask(void *pvParameters)
         for (uint16_t i = 0; i < SAMPLES; i++)
         {
             ts = micros();
-            adc2_get_raw(ADC2_CHANNEL_4, ADC_WIDTH_10Bit, &val);
+            adc2_get_raw(ADC2_CHANNEL_4, ADC_WIDTH_11Bit, &val);
             vReal[i] = val;
             while ((micros() - ts) < samplingPeriodUs)
             {

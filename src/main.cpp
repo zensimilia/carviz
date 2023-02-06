@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <esp_wifi.h>
+#include <esp_adc_cal.h>
 
 #include "settings.h"
 #include "audio_analyzer.h"
@@ -9,6 +10,7 @@
 
 LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 esp_pm_lock_handle_t powerManagementLock;
+esp_adc_cal_characteristics_t adc2_chars;
 
 // Sprites
 static LGFX_Sprite canvas(&display);
@@ -202,7 +204,7 @@ void spectrumScreen()
                 vu.setCursor(70, 0);
                 vu.print("F:20Hz-16kHz");
 
-                if (*avgVU > 95)
+                if (*avgVU > 100)
                 {
                     vu.fillCircle(44, 3, 3, TFT_RED);
                 }
@@ -214,6 +216,7 @@ void spectrumScreen()
 
                 bandHeight = (prevBands[i] + bandBins[i]) / 2;
                 spectrum.fillRect(x, 100, bw, constrain(-bandHeight, -50, 0), TFT_GREENYELLOW);
+                prevBands[i] = bandHeight;
 
                 if (bandHeight > 50)
                 {
@@ -226,10 +229,11 @@ void spectrumScreen()
                 }
 
                 spectrum.drawLine(x - 1, 0, x - 1, 100, TFT_BLACK);
-                spectrum.drawLine(x, 20, w, 20, TFT_BLACK);
-                spectrum.drawLine(x, 50, w, 50, TFT_BLACK);
 
-                prevBands[i] = bandHeight;
+                for (uint8_t i = 0; i < 20; i++)
+                {
+                    spectrum.drawLine(x, i * 5, w, i * 5, TFT_BLACK);
+                }
             }
 
             vu.pushSprite(16, 140);
@@ -264,7 +268,10 @@ void setup()
     btStop();
     esp_wifi_stop();
 
-    adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_2_5db);
+    // ADC calibration
+    esp_adc_cal_characterize(ADC_UNIT_2, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, 0, &adc2_chars);
+
+    adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_11db);
 
     // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
     if ((bool)ADC_USE_VREF)
