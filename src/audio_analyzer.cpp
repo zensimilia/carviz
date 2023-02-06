@@ -92,7 +92,7 @@ void fftComputeTask(void *pvParameters)
                     if (bin >= BANDS)
                         break;
 
-                    bandBins[bin] += sqrt(pow(vReal[i], 2) + pow(vImag[i], 2));
+                    bandBins[bin] += sqrt(vReal[i] * vReal[i] + vImag[i] * vImag[i]);
                 }
             }
 
