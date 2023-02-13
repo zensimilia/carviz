@@ -12,9 +12,7 @@
 
 // Analog to digital
 #define ADC_CHANNEL (ADC1_GPIO34_CHANNEL) // ADC1 ONLY! Default: GPIO34
-#define ADC_VREF_PIN (GPIO_NUM_27)        // GPIO 25,26 or 27
-#define ADC_USE_VREF 0
-#define ADC_THRESHOLD 4096
+#define ADC_THRESHOLD 2048
 #define SAMPLING_FREQ 32768
 #define SAMPLES 1024
 
@@ -26,9 +24,3 @@ static int16_t freqTable[BANDS] = {
     800, 1000, 1500, 2000, 2500, 4000,   // MID 200-1000-5000
     5000, 5500, 6000, 7500, 10000, 16000 // HIGH 5000-10000-20000
 };
-
-// const int16_t freqTable[BANDS] = {
-//     40, 90, 126, 170,
-//     230, 310, 560, 1000,
-//     1370, 1800, 2500, 3600,
-//     4700, 6000, 8000, 20000};

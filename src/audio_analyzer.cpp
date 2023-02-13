@@ -1,4 +1,5 @@
 #include "audio_analyzer.h"
+#include "utils.h"
 
 double_t vReal[SAMPLES];
 double_t vImag[SAMPLES];
@@ -92,7 +93,7 @@ void fftComputeTask(void *pvParameters)
                     if (bin >= BANDS)
                         break;
 
-                    bandBins[bin] += sqrt(vReal[i] * vReal[i] + vImag[i] * vImag[i]);
+                    bandBins[bin] += int_sqrt(vReal[i] * vReal[i] + vImag[i] * vImag[i]);
                 }
             }
 

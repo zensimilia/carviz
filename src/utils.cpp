@@ -19,3 +19,57 @@ uint32_t isqrt(uint32_t n)
 
     return (large * large > n) ? small : large;
 }
+
+/**
+ * It uses a binary search to find the integer square root of a 16-bit number
+ *
+ * By Triffid Hunter, Traumflug, jakepoz, many others.
+ * https://github.com/Traumflug/Teacup_Firmware
+ *
+ * @param a The number to take the square root of.
+ *
+ * @return The square root of the input.
+ */
+uint16_t int_sqrt(uint32_t a)
+{
+    uint16_t b = a >> 16;
+    uint8_t c = b >> 8;
+    uint16_t x = 0;
+    uint8_t z = 0;
+    uint16_t i;
+    uint8_t j;
+
+    for (j = 0x8; j; j >>= 1)
+    {
+        uint8_t y2;
+
+        z |= j;
+        y2 = z * z;
+        if (y2 > c)
+            z ^= j;
+    }
+
+    x = z << 4;
+    for (i = 0x8; i; i >>= 1)
+    {
+        uint16_t y2;
+
+        x |= i;
+        y2 = x * x;
+        if (y2 > b)
+            x ^= i;
+    }
+
+    x <<= 8;
+    for (i = 0x80; i; i >>= 1)
+    {
+        uint32_t y2;
+
+        x |= i;
+        y2 = (uint32_t)x * x;
+        if (y2 > a)
+            x ^= i;
+    }
+
+    return x;
+}

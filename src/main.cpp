@@ -24,7 +24,7 @@ struct asteroid_t
     int16_t y;
     uint8_t z;
     uint8_t r;
-    LGFX_Sprite sprite;
+    LGFX_Sprite *sprite;
 };
 
 asteroid_t asteroids[ASTEROIDS_QTY];
@@ -80,9 +80,9 @@ void drawAsteroids()
 
         if (a->x <= SCREEN_WIDTH)
         {
-            a->sprite.clear();
-            a->sprite.fillCircle(5, 5, a->r, TFT_WHITE);
-            a->sprite.pushSprite(&canvas, a->x, a->y, TFT_BLACK);
+            a->sprite->clear();
+            a->sprite->fillCircle(5, 5, a->r, TFT_WHITE);
+            a->sprite->pushSprite(&canvas, a->x, a->y, TFT_BLACK);
         }
     }
 }
@@ -131,16 +131,19 @@ void rocketScreen()
         a->y = rand() % SCREEN_HEIGHT;
         a->z = rand() % 3 + 1;
         a->r = rand() % 4;
-        a->sprite.setColorDepth(lgfx::palette_1bit);
-        a->sprite.createSprite(10, 10);
-        a->sprite.fillScreen(TFT_BLACK);
-        a->sprite.fillCircle(5, 5, a->r, TFT_WHITE);
+        a->sprite = new LGFX_Sprite(&rocket);
+        a->sprite->setColorDepth(lgfx::palette_1bit);
+        a->sprite->createSprite(10, 10);
+        a->sprite->fillScreen(TFT_BLACK);
+        a->sprite->fillCircle(5, 5, a->r, TFT_WHITE);
     }
 
     while (true)
     {
         if (millis() - frames >= 1000 / FPS)
         {
+            frames = millis();
+
             canvas.clear();
 
             drawAsteroids();
@@ -148,8 +151,6 @@ void rocketScreen()
             drawHeader();
 
             canvas.pushSprite(0, 0);
-
-            frames = millis();
         }
     }
 
@@ -158,7 +159,7 @@ void rocketScreen()
     for (uint8_t i = 0; i < ASTEROIDS_QTY; i++)
     {
         a = &asteroids[i];
-        a->sprite.deleteSprite();
+        a->sprite->deleteSprite();
     }
 }
 
@@ -169,23 +170,25 @@ void rocketScreen()
  */
 void spectrumScreen()
 {
-    LGFX_Sprite spectrum(&canvas);
-    LGFX_Sprite vu(&canvas);
-
-    uint8_t prevBands[BANDS] = {0};
+    static LGFX_Sprite spectrum(&canvas);
+    static LGFX_Sprite vu(&canvas);
+    static CEveryNMillis avgVUrefreshTime(100);
 
     vu.setColorDepth(lgfx::rgb332_1Byte);
-    vu.createSprite(208, 40);
+    vu.createSprite(208, 20);
     vu.fillScreen(TFT_BLACK);
+    vu.setTextColor(TFT_WHITE, TFT_BLACK);
 
     spectrum.setColorDepth(lgfx::rgb332_1Byte);
     spectrum.createSprite(208, 100);
     spectrum.fillScreen(TFT_BLACK);
 
+    uint8_t prevBands[BANDS] = {0};
     uint16_t w = spectrum.width();
     uint16_t h = spectrum.height();
     uint16_t bw = (w / BANDS);
     uint32_t *bandBins = getSpectrumBins();
+    uint16_t *avgVU = getAvgVU();
     uint8_t bandHeight = 0;
 
     while (true)
@@ -193,19 +196,15 @@ void spectrumScreen()
 
         if (millis() - frames >= 1000 / FPS)
         {
-
-            canvas.clear();
+            frames = millis();
             spectrum.clear(TFT_BLACK);
 
-            EVERY_N_MILLIS(100)
+            if (avgVUrefreshTime)
             {
-                uint16_t *avgVU = getAvgVU();
-
                 vu.clear();
                 vu.setCursor(0, 0);
                 vu.printf("VU:%3u", *avgVU);
-                vu.setCursor(70, 0);
-                vu.print("F:20Hz-16kHz");
+                vu.drawCenterString("F:20Hz-16kHz", vu.width() >> 1, 0);
 
                 if (*avgVU > 100)
                 {
@@ -231,19 +230,17 @@ void spectrumScreen()
                     spectrum.fillRect(x, 20, bw, 80 - bandHeight, TFT_RED);
                 }
 
-                spectrum.drawLine(x - 1, 0, x - 1, 100, TFT_BLACK);
-
-                for (uint8_t i = 0; i < 20; i++)
-                {
-                    spectrum.drawLine(x, i * 5, w, i * 5, TFT_BLACK);
-                }
+                spectrum.drawFastVLine(x - 1, 0, h, TFT_BLACK);
             }
 
+            for (uint8_t i = 0; i < 20; i++)
+            {
+                spectrum.drawFastHLine(0, i * 5, w, TFT_BLACK);
+            }
+
+            canvas.pushSprite(0, 0);
             vu.pushSprite(16, 140);
             spectrum.pushSprite(16, 30);
-            canvas.pushSprite(0, 0);
-
-            frames = millis();
         }
     }
 
@@ -273,12 +270,7 @@ void setup()
 
     // ADC calibration
     esp_adc_cal_characterize(ADC_UNIT_2, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, 0, &adc2_chars);
-
     adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_11db);
-
-    // VRef needs 3V3 divider to 1V1: 15K/7.5K resistors
-    if ((bool)ADC_USE_VREF)
-        adc_vref_to_gpio(ADC_UNIT_1, ADC_VREF_PIN);
 
     beginAnalyzerTasks();
 
