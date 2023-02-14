@@ -1,10 +1,10 @@
 #include <Arduino.h>
+#include <CEveryNTime.h>
 #include <esp_wifi.h>
 #include <esp_adc_cal.h>
 
 #include "settings.h"
 #include "audio_analyzer.h"
-#include "timers.h"
 #include "lgfx.h"
 #include "rocket_img.h"
 
