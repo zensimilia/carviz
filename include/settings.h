@@ -1,6 +1,7 @@
 #pragma once
 
 #include <soc/adc_channel.h>
+#include <inttypes.h>
 
 #define FPS 30
 #define VOUT_PIN (DAC2)

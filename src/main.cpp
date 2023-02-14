@@ -7,15 +7,19 @@
 #include "audio_analyzer.h"
 #include "lgfx.h"
 #include "rocket_img.h"
+#include "screen.h"
 
-LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
+Screen cvbs(SCREEN_WIDTH, SCREEN_HEIGHT);
+LGFX_Sprite *canvas = cvbs.canvas;
+
+// LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 esp_pm_lock_handle_t powerManagementLock;
 esp_adc_cal_characteristics_t adc2_chars;
 
 // Sprites
-static LGFX_Sprite canvas(&display);
-LGFX_Sprite rocket(&canvas);
-LGFX_Sprite header(&canvas);
+// static LGFX_Sprite canvas(&display);
+LGFX_Sprite rocket(canvas);
+LGFX_Sprite header(canvas);
 
 // Struct for asteroids params: position, speed, radius and Sprite
 struct asteroid_t
@@ -82,7 +86,7 @@ void drawAsteroids()
         {
             a->sprite->clear();
             a->sprite->fillCircle(5, 5, a->r, TFT_WHITE);
-            a->sprite->pushSprite(&canvas, a->x, a->y, TFT_BLACK);
+            a->sprite->pushSprite(canvas, a->x, a->y, TFT_BLACK);
         }
     }
 }
@@ -144,13 +148,13 @@ void rocketScreen()
         {
             frames = millis();
 
-            canvas.clear();
+            canvas->clear();
 
             drawAsteroids();
             drawRocket();
             drawHeader();
 
-            canvas.pushSprite(0, 0);
+            canvas->pushSprite(0, 0);
         }
     }
 
@@ -170,8 +174,8 @@ void rocketScreen()
  */
 void spectrumScreen()
 {
-    static LGFX_Sprite spectrum(&canvas);
-    static LGFX_Sprite vu(&canvas);
+    static LGFX_Sprite spectrum(canvas);
+    static LGFX_Sprite vu(canvas);
     static CEveryNMillis avgVUrefreshTime(100);
 
     vu.setColorDepth(lgfx::rgb332_1Byte);
@@ -238,7 +242,7 @@ void spectrumScreen()
                 spectrum.drawFastHLine(0, i * 5, w, TFT_BLACK);
             }
 
-            canvas.pushSprite(0, 0);
+            canvas->pushSprite(0, 0);
             vu.pushSprite(16, 140);
             spectrum.pushSprite(16, 30);
         }
@@ -275,14 +279,15 @@ void setup()
     beginAnalyzerTasks();
 
     // Setup CVBS display
-    display.init();
-    display.startWrite();
+    cvbs.initDisplay();
+    // display.init();
+    // display.startWrite();
 
     // Create main canvas
-    canvas.setColorDepth(lgfx::rgb332_1Byte);
-    canvas.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
-    canvas.fillScreen(TFT_BLACK);
-    canvas.pushSprite(0, 0);
+    // canvas.setColorDepth(lgfx::rgb332_1Byte);
+    // canvas.createSprite(SCREEN_WIDTH, SCREEN_HEIGHT);
+    // canvas.fillScreen(TFT_BLACK);
+    // canvas.pushSprite(0, 0);
 
     delay(500); // Wait for initialization to complete?
 }
@@ -292,6 +297,7 @@ void setup()
  */
 void loop()
 {
-    spectrumScreen();
+    cvbs.draw();
+    // spectrumScreen();
     // rocketScreen();
 }

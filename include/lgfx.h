@@ -10,16 +10,16 @@ class LGFX : public lgfx::LGFX_Device
 public:
     lgfx::Panel_CVBS _panel_instance;
 
-    LGFX(void)
+    LGFX(uint16_t width = 240, uint16_t height = 160)
     {
         {
             auto cfg = _panel_instance.config();
 
-            cfg.memory_width = SCREEN_WIDTH;
-            cfg.memory_height = SCREEN_HEIGHT;
+            cfg.memory_width = width;
+            cfg.memory_height = height;
 
-            cfg.panel_width = SCREEN_WIDTH;
-            cfg.panel_height = SCREEN_HEIGHT;
+            cfg.panel_width = width;
+            cfg.panel_height = height;
 
             cfg.offset_x = 0;
             cfg.offset_y = 0;
