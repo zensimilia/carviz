@@ -37,7 +37,7 @@ public:
 
             if ((bool)USE_PSRAM)
             {
-                cfg.use_psram = 0; // 0=!PSRAM | 1=PSRAM/SRAM | 2=PSRAM
+                cfg.use_psram = 1; // 0=!PSRAM | 1=PSRAM/SRAM | 2=PSRAM
 
                 // Reading PSRAM task priority
                 cfg.task_priority = 25;
