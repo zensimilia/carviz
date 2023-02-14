@@ -14,16 +14,19 @@ public:
     static LGFX *display;
     static LGFX_Sprite *canvas;
 
+    Screen() = default;
     Screen(uint16_t sizeX, uint16_t sizeY) : _sizeX(sizeX), _sizeY(sizeY){};
     ~Screen()
     {
         canvas->deleteSprite();
     };
 
-    bool initDisplay(void);
-    virtual void draw(void);
-    virtual void clearScreen(void);
+    bool initDisplay();
+    virtual void draw();
+    virtual void clearScreen();
 
 protected:
+    uint64_t frames = 0;
+
     void initCanvas();
 };

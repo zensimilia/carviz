@@ -1,0 +1,67 @@
+#include "spectrum.h"
+
+void Spectrum::drawBar()
+{
+    if (avgVUrefreshTime)
+    {
+        uint16_t *avgVU = getAvgVU();
+
+        vu->clear();
+        vu->setCursor(0, 0);
+        vu->printf("VU:%3u", *avgVU);
+        vu->drawCenterString("F:20Hz-16kHz", vu->width() >> 1, 0);
+
+        if (*avgVU > 100)
+            vu->fillCircle(44, 3, 3, TFT_RED);
+
+        vu->pushSprite(16, 140);
+    }
+}
+
+void Spectrum::drawSpectrum()
+{
+    uint8_t bandHeight = 0;
+
+    spectrum->clear(TFT_BLACK);
+
+    for (uint8_t i = 0; i < BANDS; i++)
+    {
+        uint16_t x = i * bw;
+
+        bandHeight = (prevBands[i] + bandBins[i]) / 2;
+        spectrum->fillRect(x, 100, bw, constrain(-bandHeight, -50, 0), TFT_GREENYELLOW);
+        prevBands[i] = bandHeight;
+
+        if (bandHeight > 50)
+        {
+            spectrum->fillRect(x, 50, bw, 50 - bandHeight, TFT_YELLOW);
+        }
+
+        if (bandHeight > 80)
+        {
+            spectrum->fillRect(x, 20, bw, 80 - bandHeight, TFT_RED);
+        }
+
+        spectrum->drawFastVLine(x - 1, 0, h, TFT_BLACK);
+    }
+
+    for (uint8_t i = 0; i < 20; i++)
+    {
+        spectrum->drawFastHLine(0, i * 5, w, TFT_BLACK);
+    }
+
+    spectrum->pushSprite(16, 30);
+}
+
+void Spectrum::draw()
+{
+    if (millis() - frames >= 1000 / FPS)
+    {
+        frames = millis();
+
+        drawBar();
+        drawSpectrum();
+
+        canvas->pushSprite(0, 0);
+    }
+}
