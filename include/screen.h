@@ -7,8 +7,6 @@ class Screen
 {
 private:
     bool _initAlready = false;
-    uint16_t _sizeX;
-    uint16_t _sizeY;
 
 public:
     static LGFX *display;
@@ -18,7 +16,8 @@ public:
     Screen(uint16_t sizeX, uint16_t sizeY) : _sizeX(sizeX), _sizeY(sizeY){};
     ~Screen()
     {
-        canvas->deleteSprite();
+        delete canvas;
+        delete display;
     };
 
     bool initDisplay();
@@ -26,7 +25,9 @@ public:
     virtual void clearScreen();
 
 protected:
-    uint64_t frames = 0;
+    uint16_t _sizeX = 240;
+    uint16_t _sizeY = 160;
 
     void initCanvas();
+    void pushCanvas(uint16_t x = 0, uint16_t y = 0);
 };

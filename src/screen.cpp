@@ -37,6 +37,11 @@ void Screen::initCanvas()
     canvas->pushSprite(0, 0);
 }
 
+void Screen::pushCanvas(uint16_t x, uint16_t y)
+{
+    canvas->pushSprite(x, y);
+}
+
 void Screen::clearScreen()
 {
     canvas->clear();
