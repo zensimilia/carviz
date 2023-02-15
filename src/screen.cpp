@@ -24,7 +24,8 @@ void Screen::draw()
     {
         canvas->clear(TFT_WHITE);
         canvas->setTextColor(TFT_BLACK);
-        canvas->drawCenterString("CVBS", canvas->width() >> 1, canvas->height() >> 1);
+        canvas->setCursor(10, 10);
+        canvas->printf("CVBS / RAM:%6d", esp_get_free_heap_size());
         canvas->pushSprite(0, 0);
     }
 };

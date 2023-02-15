@@ -9,7 +9,7 @@
 
 Screen cvbs(SCREEN_WIDTH, SCREEN_HEIGHT);
 Screens::Spectrum sSpectrum;
-// Screens::Rocket sRocket;
+Screens::Rocket sRocket;
 
 // LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 esp_pm_lock_handle_t powerManagementLock;
@@ -56,9 +56,8 @@ void loop()
     if (millis() - frames >= 1000 / FPS)
     {
         frames = millis();
-        // cvbs.draw();
-
         sSpectrum.draw();
+        // cvbs.draw();
         // sRocket.draw();
     }
 }

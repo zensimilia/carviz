@@ -29,7 +29,7 @@ namespace Screens
 
             vu = new LGFX_Sprite(canvas);
             vu->setColorDepth(lgfx::rgb332_1Byte);
-            vu->createSprite(208, 20);
+            vu->createSprite(208, 10);
             vu->fillScreen(TFT_BLACK);
             vu->setTextColor(TFT_WHITE, TFT_BLACK);
 
