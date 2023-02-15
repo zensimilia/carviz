@@ -14,28 +14,33 @@ namespace Screens
         LGFX_Sprite *vu;
         CEveryNMillis *avgVUrefreshTime;
 
-        uint8_t prevBands[BANDS] = {0};
-        uint8_t *bandBins = (uint8_t *)getSpectrumBins();
+        uint32_t prevBands[BANDS] = {0};
+        uint32_t *bandBins = getSpectrumBins();
+        uint8_t bandHeight = 0;
 
-        const uint16_t w = spectrum->width();
-        const uint16_t h = spectrum->height();
-        const uint16_t bw = (w / BANDS);
+        uint16_t w;
+        uint16_t h;
+        uint16_t bw;
 
     public:
         Spectrum()
         {
-            spectrum = new LGFX_Sprite(canvas);
-            vu = new LGFX_Sprite(canvas);
             avgVUrefreshTime = new CEveryNMillis(100);
 
+            vu = new LGFX_Sprite(canvas);
             vu->setColorDepth(lgfx::rgb332_1Byte);
             vu->createSprite(208, 20);
             vu->fillScreen(TFT_BLACK);
             vu->setTextColor(TFT_WHITE, TFT_BLACK);
 
+            spectrum = new LGFX_Sprite(canvas);
             spectrum->setColorDepth(lgfx::rgb332_1Byte);
             spectrum->createSprite(208, 100);
             spectrum->fillScreen(TFT_BLACK);
+
+            w = spectrum->width();
+            h = spectrum->height();
+            bw = (w / BANDS);
         };
         ~Spectrum()
         {

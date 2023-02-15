@@ -4,7 +4,7 @@ using namespace Screens;
 
 void Spectrum::drawBar()
 {
-    if (avgVUrefreshTime)
+    if (*avgVUrefreshTime)
     {
         uint16_t *avgVU = getAvgVU();
 
@@ -22,16 +22,16 @@ void Spectrum::drawBar()
 
 void Spectrum::drawSpectrum()
 {
-    uint8_t bandHeight = 0;
-
     spectrum->clear(TFT_BLACK);
 
     for (uint8_t i = 0; i < BANDS; i++)
     {
         uint16_t x = i * bw;
 
-        bandHeight = prevBands[i] = (prevBands[i] + bandBins[i]) >> 1; // Smooth
+        bandHeight = (prevBands[i] + bandBins[i]) >> 1; // Smooth
+        Serial.printf("[%d] ", constrain(-bandHeight, -50, 0));
         spectrum->fillRect(x, 100, bw, constrain(-bandHeight, -50, 0), TFT_GREENYELLOW);
+        prevBands[i] = bandHeight;
 
         if (bandHeight > 50)
             spectrum->fillRect(x, 50, bw, 50 - bandHeight, TFT_YELLOW);
@@ -41,6 +41,7 @@ void Spectrum::drawSpectrum()
 
         spectrum->drawFastVLine(x - 1, 0, h, TFT_BLACK);
     }
+    Serial.println();
 
     for (uint8_t i = 0; i < 20; i++)
     {
