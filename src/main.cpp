@@ -3,15 +3,17 @@
 #include <esp_adc_cal.h>
 
 #include "settings.h"
+#include "aspect.h"
 #include "screen.h"
 #include "screens/spectrum.h"
 #include "screens/rocket.h"
 
-Screen cvbs(SCREEN_WIDTH, SCREEN_HEIGHT);
+ASpect analyzer(SAMPLES, SAMPLING_FREQ);
+Screen cvbs(SCREEN_WIDTH, SCREEN_HEIGHT); // NTSC, 240x160, 8-bit (RGB332) color
+
 Screens::Spectrum sSpectrum;
 Screens::Rocket sRocket;
 
-// LGFX display; // NTSC, 240x160, 8-bit (RGB332) color
 esp_pm_lock_handle_t powerManagementLock;
 esp_adc_cal_characteristics_t adc2_chars;
 
@@ -40,10 +42,11 @@ void setup()
     esp_adc_cal_characterize(ADC_UNIT_2, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_11, 0, &adc2_chars);
     adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_11db);
 
-    beginAnalyzerTasks();
+    // Setup audio spectrum analyzer
+    analyzer.begin();
 
     // Setup CVBS display
-    cvbs.init();
+    cvbs.begin();
 
     delay(500); // Wait for initialization to complete?
 }

@@ -3,10 +3,11 @@
 #include <vector>
 
 #include "screen.h"
-#include "audio_analyzer.h"
+#include "aspect.h"
 #include "assets/rocket_img.h"
 
-extern Screen cvbs; // Global screen
+extern ASpect analyzer; // Global analyzer
+extern Screen cvbs;     // Global screen
 
 namespace Screens
 {
@@ -75,6 +76,6 @@ namespace Screens
         uint8_t ry = 20;
         int8_t rdy = 1;
 
-        uint32_t *bandBins = getSpectrumBins();
+        uint32_t *bandBins = analyzer.getSpectrum();
     }; // class Rocket
 } // namespace Screens

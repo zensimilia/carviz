@@ -2,9 +2,10 @@
 
 #include "screen.h"
 #include "CEveryNTime.h"
-#include "audio_analyzer.h"
+#include "aspect.h"
 
-extern Screen cvbs; // Global screen
+extern ASpect analyzer; // Global analyzer
+extern Screen cvbs;     // Global screen
 
 namespace Screens
 {
@@ -16,7 +17,7 @@ namespace Screens
         CEveryNMillis *avgVUrefreshTime;
 
         uint32_t prevBands[BANDS] = {0};
-        uint32_t *bandBins = getSpectrumBins();
+        uint32_t *bandBins = analyzer.getSpectrum();
         uint8_t bandHeight = 0;
 
         uint16_t w;

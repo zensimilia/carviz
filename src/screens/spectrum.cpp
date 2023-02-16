@@ -6,16 +6,16 @@ void Spectrum::drawBar()
 {
     if (*avgVUrefreshTime)
     {
-        uint16_t *avgVU = getAvgVU();
+        uint16_t avgVU = analyzer.getAvgVU();
 
         vu->clear();
         vu->setCursor(0, 0);
-        vu->printf("VU:%3u", *avgVU);
+        vu->printf("VU:%3u", avgVU);
         vu->setCursor(148, 0);
         vu->printf("RAM:%6d", esp_get_free_heap_size());
         vu->drawCenterString("20Hz-16kHz", vu->width() >> 1, 0);
 
-        if (*avgVU > 100)
+        if (avgVU > 100)
             vu->fillCircle(44, 3, 3, TFT_RED);
 
         vu->pushSprite(16, 140);
