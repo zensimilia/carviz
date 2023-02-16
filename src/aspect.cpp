@@ -42,7 +42,8 @@ void ASpect::fftComputeTask(void *pvParameters)
     {
         if (xQueueReceive(_xSamplesQueue, &_vReal, portMAX_DELAY) == pdTRUE)
         {
-            memset(&_vImag, 0, sizeof(_vImag));
+
+            memset(_vImag, 0, sizeof(*_vImag) * _sampleRate);
 
             // Compute FFT
             fft->Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
@@ -79,10 +80,8 @@ void ASpect::fftComputeTask(void *pvParameters)
                 _bandBins[i] = constrain(_bandBins[i], 0, 100);
             }
 
-            // avgVU /= BANDS;
-
-            float t = _avgVU / (_sampleRate >> 1);
-            _avgVU = _oldVU = max(t, (_oldVU * 3 + t) / 4);
+            uint16_t t = _avgVU / (_sampleRate >> 1);
+            _avgVU = _oldVU = max(t, (uint16_t)((_oldVU * 3 + t) / 4));
 
             // Trigger event that FFT is ready for next computing
             xEventGroupSetBits(_xEventGroup, FFT_READY);
@@ -101,8 +100,8 @@ void ASpect::init()
     _process = true; // Flag
 
     // Create the Tasks
-    xTaskCreatePinnedToCore(adcReadTaskWrapper, "ADC Read Task", 4096, NULL, 25, NULL, 0);
-    xTaskCreatePinnedToCore(fftComputeTaskWrapper, "FFT Compute Task", 4096, NULL, 25, NULL, 1);
+    xTaskCreatePinnedToCore(adcReadTaskWrapper, "ADC Read Task", 4096, this, 25, NULL, 0);
+    xTaskCreatePinnedToCore(fftComputeTaskWrapper, "FFT Compute Task", 4096, this, 25, NULL, 1);
 
     // Trigger event that FFT is ready for next computing
     xEventGroupSetBits(_xEventGroup, FFT_READY);
@@ -110,4 +109,5 @@ void ASpect::init()
 
 void ASpect::begin() { init(); }
 
+// TODO: fix memory leak and freezes
 void ASpect::stop() { _process = false; }

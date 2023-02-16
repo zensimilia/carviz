@@ -6,13 +6,13 @@
 #include "aspect.h"
 #include "screen.h"
 #include "screens/spectrum.h"
-#include "screens/rocket.h"
+// #include "screens/rocket.h"
 
 ASpect analyzer(SAMPLES, SAMPLING_FREQ);
 Screen cvbs(SCREEN_WIDTH, SCREEN_HEIGHT); // NTSC, 240x160, 8-bit (RGB332) color
 
 Screens::Spectrum sSpectrum;
-Screens::Rocket sRocket;
+// Screens::Rocket sRocket;
 
 esp_pm_lock_handle_t powerManagementLock;
 esp_adc_cal_characteristics_t adc2_chars;
@@ -25,14 +25,14 @@ static uint64_t frames = 0;
  */
 void setup()
 {
+    // Setup Serial
+    Serial.begin(115200);
+    Serial.println();
+
     // Set highest CPU clockspeed
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "PowerManagementLock", &powerManagementLock);
     esp_pm_lock_acquire(powerManagementLock);
     setCpuFrequencyMhz(240);
-
-    // Setup Serial
-    Serial.begin(115200);
-    Serial.println();
 
     // Turn off the BT and Wi-Fi
     btStop();
@@ -63,4 +63,14 @@ void loop()
         // cvbs.draw();
         // sRocket.draw();
     }
+
+    // EVERY_N_SECONDS(7)
+    // {
+    //     analyzer.stop();
+    // }
+
+    // EVERY_N_SECONDS(12)
+    // {
+    //     analyzer.begin();
+    // }
 }

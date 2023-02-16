@@ -28,7 +28,7 @@ void Screen::draw()
         canvas->clear(TFT_WHITE);
         canvas->setTextColor(TFT_BLACK);
         canvas->setCursor(10, 10);
-        canvas->printf("CVBS\nRAM:%6d\n", esp_get_free_heap_size());
+        canvas->printf("RAM:%6d\n", esp_get_free_heap_size());
         canvas->pushSprite(0, 0);
     }
 }

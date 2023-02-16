@@ -28,8 +28,8 @@ private:
     const uint8_t _bands = BANDS;
     const uint8_t _samplingPeriodUs = round(1.0 / _samplingFreq * 1000000);
 
-    uint16_t _avgVU = 0;
-    uint16_t _oldVU = 0;
+    uint32_t _avgVU = 0;
+    uint32_t _oldVU = 0;
     uint32_t _bandBins[BANDS];
 
     QueueHandle_t _xSamplesQueue = xQueueCreate(_sampleRate, sizeof(double_t *));
@@ -71,7 +71,7 @@ public:
     void begin();
     void stop();
 
-    uint16_t getAvgVU() const { return _avgVU; };
+    uint32_t getAvgVU() const { return _avgVU / 500.0 * 100.0; }; // TODO: make true VU
     uint32_t *getSpectrum() { return _bandBins; };
 
 }; // class ASpect
