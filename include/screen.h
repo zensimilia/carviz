@@ -1,33 +1,34 @@
 #pragma once
 
-#include "settings.h"
 #include "lgfx.h"
 
 class Screen
 {
 private:
     bool _initAlready = false;
+    uint16_t _sizeX;
+    uint16_t _sizeY;
 
 public:
-    static LGFX *display;
+    static LGFX *cvbs;
     static LGFX_Sprite *canvas;
 
-    Screen() = default;
-    Screen(uint16_t sizeX, uint16_t sizeY) : _sizeX(sizeX), _sizeY(sizeY){};
-    ~Screen()
-    {
-        delete canvas;
-        delete display;
-    };
+    Screen(uint16_t width = 240, uint16_t height = 160) : _sizeX(width), _sizeY(height){};
+    Screen(Screen const &) = delete;
+    ~Screen() = default;
 
-    bool initDisplay();
-    virtual void draw();
-    virtual void clearScreen();
+    bool init();
+    bool begin();
+    uint16_t width() const;
+    uint16_t height() const;
+
+    template <typename T>
+    void clearScreen(const T &color);
+    void clearScreen();
+
+    void draw();
+    void push();
 
 protected:
-    uint16_t _sizeX = 240;
-    uint16_t _sizeY = 160;
-
     void initCanvas();
-    void pushCanvas(uint16_t x = 0, uint16_t y = 0);
-};
+}; // class Screen

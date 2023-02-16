@@ -1,27 +1,29 @@
 #pragma once
 
+#include <vector>
+
 #include "screen.h"
 #include "audio_analyzer.h"
 #include "assets/rocket_img.h"
 
-#include <vector>
+extern Screen cvbs; // Global screen
 
 namespace Screens
 {
-    class Rocket : public Screen
+    class Rocket
     {
     public:
         Rocket()
         {
-            rocket = new LGFX_Sprite(canvas);
+            rocket = new LGFX_Sprite(cvbs.canvas);
             rocket->setColorDepth(lgfx::palette_1bit);
             rocket->createSprite(96, 56);
             rocket->fillScreen(TFT_BLACK);
             rocket->drawBitmap(0, 1, rocket_img, 96, 54, TFT_WHITE);
 
-            header = new LGFX_Sprite(canvas);
+            header = new LGFX_Sprite(cvbs.canvas);
             header->setColorDepth(lgfx::palette_1bit);
-            header->createSprite(_sizeX, _sizeY >> 1);
+            header->createSprite(cvbs.width(), cvbs.height() >> 1);
             header->fillScreen(TFT_BLACK);
             header->setTextColor(TFT_WHITE);
             header->setTextDatum(textdatum_t::top_center);
@@ -50,7 +52,7 @@ namespace Screens
         void drawHeader(const char *text = "ASTRO BLACK", float_t textSize = 0.7f);
 
     private:
-        // Struct for asteroids params: position, speed, radius and Sprite
+        // Struct for asteroids: position, speed, radius and sprite
         struct asteroid_t
         {
             int16_t x;
@@ -64,17 +66,15 @@ namespace Screens
         LGFX_Sprite *rocket;
         LGFX_Sprite *header;
 
-        const uint8_t rocketPivotX = (_sizeX - 96) >> 1;
-        const uint8_t rocketPivotY = (_sizeY - 96) >> 1;
-        const uint8_t headerPivotX = _sizeX >> 1;
-        const uint8_t headerPivotY = (_sizeY >> 1) + 10;
+        const uint16_t rocketPivotX = (cvbs.width() - 96) >> 1;
+        const uint16_t rocketPivotY = (cvbs.height() - 96) >> 1;
+        const uint16_t headerPivotX = cvbs.width() >> 1;
+        const uint16_t headerPivotY = (cvbs.height() >> 1) + 10;
         const uint16_t blinkDelayMs = 600;
 
         uint8_t ry = 20;
         int8_t rdy = 1;
 
         uint32_t *bandBins = getSpectrumBins();
-
-    protected:
-    };
+    }; // class Rocket
 } // namespace Screens

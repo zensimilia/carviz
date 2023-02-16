@@ -55,5 +55,5 @@ void Spectrum::draw()
     drawBar();
     drawSpectrum();
 
-    pushCanvas();
+    cvbs.push();
 }

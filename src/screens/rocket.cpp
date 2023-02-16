@@ -4,13 +4,13 @@ using namespace Screens;
 
 void Rocket::draw()
 {
-    canvas->clear();
+    cvbs.canvas->clear();
 
     drawAsteroids();
     drawRocket();
     drawHeader();
 
-    canvas->pushSprite(0, 0);
+    cvbs.canvas->pushSprite(0, 0);
 }
 
 void Rocket::initAsteroids()
@@ -21,8 +21,8 @@ void Rocket::initAsteroids()
     {
         a = &asteroids[i];
 
-        a->x = rand() % _sizeX;
-        a->y = rand() % _sizeY;
+        a->x = rand() % cvbs.width();
+        a->y = rand() % cvbs.height();
         a->z = rand() % 3 + 1;
         a->r = rand() % 4;
         a->sprite = new LGFX_Sprite(rocket);
@@ -70,15 +70,15 @@ void Rocket::drawAsteroids()
 
         if (a->x < -10)
         {
-            a->x = rand() % _sizeX + _sizeX;
-            a->y = rand() % _sizeY;
+            a->x = rand() % cvbs.width() + cvbs.width();
+            a->y = rand() % cvbs.height();
         }
 
-        if (a->x <= _sizeX)
+        if (a->x <= cvbs.width())
         {
             a->sprite->clear();
             a->sprite->fillCircle(5, 5, a->r, TFT_WHITE);
-            a->sprite->pushSprite(canvas, a->x, a->y, TFT_BLACK);
+            a->sprite->pushSprite(cvbs.canvas, a->x, a->y, TFT_BLACK);
         }
     }
 }

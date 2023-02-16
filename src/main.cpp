@@ -43,7 +43,7 @@ void setup()
     beginAnalyzerTasks();
 
     // Setup CVBS display
-    cvbs.initDisplay();
+    cvbs.init();
 
     delay(500); // Wait for initialization to complete?
 }
