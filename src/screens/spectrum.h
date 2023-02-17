@@ -1,11 +1,11 @@
 #pragma once
 
-#include "screen.h"
+#include "lgfx.h"
 #include "CEveryNTime.h"
 #include "aspect.h"
 
 extern ASpect analyzer; // Global analyzer
-extern Screen cvbs;     // Global screen
+extern LGFX cvbs;       // Global cvbs
 
 namespace Screens
 {

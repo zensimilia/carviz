@@ -4,12 +4,12 @@
 
 #include "settings.h"
 #include "aspect.h"
-#include "screen.h"
+#include "lgfx.h"
 #include "screens/spectrum.h"
 // #include "screens/rocket.h"
 
 ASpect analyzer(SAMPLES, SAMPLING_FREQ);
-Screen cvbs(SCREEN_WIDTH, SCREEN_HEIGHT); // NTSC, 240x160, 8-bit (RGB332) color
+LGFX cvbs(SCREEN_WIDTH, SCREEN_HEIGHT, DAC2); // NTSC, 240x160, 8-bit (RGB332) color
 
 Screens::Spectrum sSpectrum;
 // Screens::Rocket sRocket;

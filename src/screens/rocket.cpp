@@ -10,7 +10,7 @@ void Rocket::draw()
     drawRocket();
     drawHeader();
 
-    cvbs.canvas->pushSprite(0, 0);
+    cvbs.push();
 }
 
 void Rocket::initAsteroids()

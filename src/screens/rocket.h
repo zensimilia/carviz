@@ -2,12 +2,12 @@
 
 #include <vector>
 
-#include "screen.h"
+#include "lgfx.h"
 #include "aspect.h"
 #include "assets/rocket_img.h"
 
 extern ASpect analyzer; // Global analyzer
-extern Screen cvbs;     // Global screen
+extern LGFX cvbs;       // Global cvbs
 
 namespace Screens
 {
