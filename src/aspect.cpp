@@ -1,8 +1,13 @@
 #include "aspect.h"
-#include "utils.h"
 
+/**
+ * It waits for the FFT to be ready, then collects samples and sends them to the Queue
+ *
+ * @param pvParameters A parameter to pass to the task.
+ */
 void ASpect::adcReadTask(void *pvParameters)
 {
+    _process = true;
     adc_power_acquire();
 
     while (_process)
@@ -21,6 +26,7 @@ void ASpect::adcReadTask(void *pvParameters)
             _vReal[i] = val;
             while ((micros() - ts) < _samplingPeriodUs)
             {
+                taskYIELD(); // Test
             }
         }
 
@@ -33,10 +39,17 @@ void ASpect::adcReadTask(void *pvParameters)
     vTaskDelete(NULL);
 }
 
+/**
+ * The function takes the samples from the ADC, computes the FFT, and then computes the average VU
+ * level
+ *
+ * @param pvParameters A pointer to the parameters passed to the task when the task was created.
+ */
 void ASpect::fftComputeTask(void *pvParameters)
 {
     // Width of each frequency bin in Hz
     const uint16_t df = _samplingFreq / _sampleRate;
+    _process = true;
 
     while (_process)
     {
@@ -67,6 +80,7 @@ void ASpect::fftComputeTask(void *pvParameters)
                     if (bin >= _bands)
                         break;
 
+                    // Complex to magnitude
                     _bandBins[bin] += int_sqrt(_vReal[i] * _vReal[i] + _vImag[i] * _vImag[i]);
                 }
             }
@@ -91,10 +105,14 @@ void ASpect::fftComputeTask(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-// Issue https://stackoverflow.com/questions/45831114/c-freertos-task-invalid-use-of-non-static-member-function
-void ASpect::adcReadTaskWrapper(void *_this) { static_cast<ASpect *>(_this)->adcReadTask(NULL); }
-void ASpect::fftComputeTaskWrapper(void *_this) { static_cast<ASpect *>(_this)->fftComputeTask(NULL); }
+void ASpect::adcReadTaskWrapper(void *_this) { static_cast<ASpect *>(_this)->adcReadTask(NULL); }       // RTOS xTaskCreate issue
+void ASpect::fftComputeTaskWrapper(void *_this) { static_cast<ASpect *>(_this)->fftComputeTask(NULL); } // RTOS xTaskCreate issue
 
+/**
+ * The function creates two tasks, one for reading the ADC and one for computing the FFT. The ADC task
+ * is pinned to core 0 and the FFT task is pinned to core 1. The ADC task is triggered by the ADC
+ * interrupt and the FFT task is triggered by the FFT_READY event
+ */
 void ASpect::init()
 {
     _process = true; // Flag
@@ -107,6 +125,9 @@ void ASpect::init()
     xEventGroupSetBits(_xEventGroup, FFT_READY);
 }
 
+/**
+ * Alias for `init()` member function
+ */
 void ASpect::begin() { init(); }
 
 // TODO: fix memory leak and freezes

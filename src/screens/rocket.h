@@ -16,6 +16,8 @@ namespace Screens
     public:
         Rocket()
         {
+            // TODO: try `sprite.setBuffer` or `pushImage`
+            // https://github.com/lovyan03/LovyanGFX/blob/master/examples/Sprite/FlashMemSprite/FlashMemSprite.ino
             rocket = new LGFX_Sprite(cvbs.canvas);
             rocket->setColorDepth(lgfx::palette_1bit);
             rocket->createSprite(96, 56);
@@ -33,15 +35,17 @@ namespace Screens
         };
         ~Rocket()
         {
-            asteroid_t *a;
-
             delete rocket;
             delete header;
 
-            for (uint8_t i = 0; i < asteroids.size(); i++)
             {
-                a = &asteroids[i];
-                delete a->sprite;
+                asteroid_t *a;
+
+                for (uint8_t i = 0; i < asteroids.size(); i++)
+                {
+                    a = &asteroids[i];
+                    delete a->sprite;
+                }
             }
         };
 

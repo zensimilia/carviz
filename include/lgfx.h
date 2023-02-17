@@ -63,6 +63,7 @@ public:
         canvas = new lgfx::LGFX_Sprite(this);
         canvas->setColorDepth(lgfx::palette_1bit);
         canvas->createSprite(width, height);
+        canvas->createPalette();
         canvas->fillScreen(TFT_BLACK);
         canvas->pushSprite(0, 0);
     };

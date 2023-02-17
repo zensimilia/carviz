@@ -49,6 +49,10 @@ void setup()
     cvbs.begin();
 
     delay(500); // Wait for initialization to complete?
+
+    cvbs.drawColorTable();
+
+    delay(10000);
 }
 
 /**

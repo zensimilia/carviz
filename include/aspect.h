@@ -1,13 +1,17 @@
 #pragma once
 
-#include <vector>
 #include <driver/adc_common.h>
 #include <arduinoFFT.h>
+#include "utils.h"
 
 #define FFT_READY (1 << 0) // Event bits
 #define AMPLITUDE 256
 #define ADC_THRESHOLD 2048
 #define BANDS 16
+#define BANDS_FREQ_TABLE                                                                           \
+    {                                                                                              \
+        80, 160, 320, 640, 800, 1000, 1500, 2000, 2500, 4000, 5000, 5500, 6000, 7500, 10000, 20000 \
+    } // LOW 20-200, MID 200-1000-5000, HIGH 5000-10000-20000
 
 /**
  * A class that performs a Fast Fourier Transform (FFT) of an audio signal
@@ -31,6 +35,7 @@ private:
     uint32_t _avgVU = 0;
     uint32_t _oldVU = 0;
     uint32_t _bandBins[BANDS];
+    uint16_t _freqTable[BANDS] = BANDS_FREQ_TABLE;
 
     QueueHandle_t _xSamplesQueue = xQueueCreate(_sampleRate, sizeof(double_t *));
     EventGroupHandle_t _xEventGroup = xEventGroupCreate();
@@ -38,15 +43,8 @@ private:
     void adcReadTask(void *pvParameters);
     void fftComputeTask(void *pvParameters);
 
-    // RTOS xTaskCreate issue
     static void adcReadTaskWrapper(void *_this);
     static void fftComputeTaskWrapper(void *_this);
-
-    int16_t _freqTable[BANDS] = {
-        80, 160, 320, 640,                   // LOW 20-200
-        800, 1000, 1500, 2000, 2500, 4000,   // MID 200-1000-5000
-        5000, 5500, 6000, 7500, 10000, 20000 // HIGH 5000-10000-20000
-    };
 
 public:
     arduinoFFT *fft;
