@@ -26,3 +26,5 @@ Create a hex dump of a given file in C format include file style:
 ```
 xxd -i [in_file] > [out_file.cpp]
 ```
+
+Convert images for use with TFT: https://lvgl.io/tools/imageconverter

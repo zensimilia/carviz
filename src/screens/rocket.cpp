@@ -24,7 +24,7 @@ void Rocket::initAsteroids()
         a->x = rand() % cvbs._width;
         a->y = rand() % cvbs._height;
         a->z = rand() % 3 + 1;
-        a->r = rand() % 4;
+        a->r = 1;
         a->sprite = new LGFX_Sprite(canvas);
         a->sprite->setColorDepth(lgfx::palette_1bit);
         a->sprite->createSprite(10, 10);

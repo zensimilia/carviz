@@ -16,8 +16,6 @@ namespace Screens
     public:
         Rocket()
         {
-            // TODO: try `sprite.setBuffer` or `pushImage`
-            // https://github.com/lovyan03/LovyanGFX/blob/master/examples/Sprite/FlashMemSprite/FlashMemSprite.ino
             canvas = new LGFX_Sprite(&cvbs);
             canvas->setColorDepth(lgfx::palette_1bit);
             canvas->createSprite(cvbs._width, cvbs._height);
