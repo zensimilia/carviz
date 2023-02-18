@@ -26,7 +26,7 @@ void ASpect::adcReadTask(void *pvParameters)
             _vReal[i] = val;
             while ((micros() - ts) < _samplingPeriodUs)
             {
-                taskYIELD(); // Test
+                taskYIELD();
             }
         }
 
@@ -53,9 +53,8 @@ void ASpect::fftComputeTask(void *pvParameters)
 
     while (_process)
     {
-        if (xQueueReceive(_xSamplesQueue, &_vReal, portMAX_DELAY) == pdTRUE)
+        if (xQueueReceive(_xSamplesQueue, &_vReal, portMAX_DELAY) == pdPASS)
         {
-
             memset(_vImag, 0, sizeof(*_vImag) * _sampleRate);
 
             // Compute FFT
@@ -118,8 +117,8 @@ void ASpect::init()
     _process = true; // Flag
 
     // Create the Tasks
-    xTaskCreatePinnedToCore(adcReadTaskWrapper, "ADC Read Task", 4096, this, 25, NULL, 0);
-    xTaskCreatePinnedToCore(fftComputeTaskWrapper, "FFT Compute Task", 4096, this, 25, NULL, 1);
+    xTaskCreatePinnedToCore(adcReadTaskWrapper, "ADC Read Task", 4096, this, 1, NULL, 0);
+    xTaskCreatePinnedToCore(fftComputeTaskWrapper, "FFT Compute Task", 4096, this, 0, NULL, 0); // Proirity needs to be zero
 
     // Trigger event that FFT is ready for next computing
     xEventGroupSetBits(_xEventGroup, FFT_READY);

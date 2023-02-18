@@ -29,16 +29,19 @@ namespace Screens
         {
             avgVUrefreshTime = new CEveryNMillis(100);
 
-            vu = new LGFX_Sprite(cvbs.canvas);
+            vu = new LGFX_Sprite(&cvbs);
             vu->setColorDepth(lgfx::palette_2bit);
             vu->createSprite(208, 10);
+            vu->setPaletteColor(1, TFT_RED);
             vu->fillScreen(TFT_BLACK);
             vu->setTextColor(TFT_WHITE, TFT_BLACK);
-            vu->setPaletteColor(1, TFT_RED);
 
-            spectrum = new LGFX_Sprite(cvbs.canvas);
-            spectrum->setColorDepth(lgfx::rgb332_1Byte); // TODO: change palette to 16 colors
+            spectrum = new LGFX_Sprite(&cvbs);
+            spectrum->setColorDepth(lgfx::palette_4bit);
             spectrum->createSprite(208, 100);
+            spectrum->setPaletteColor(1, TFT_GREENYELLOW);
+            spectrum->setPaletteColor(2, TFT_YELLOW);
+            spectrum->setPaletteColor(3, TFT_RED);
             spectrum->fillScreen(TFT_BLACK);
 
             w = spectrum->width();

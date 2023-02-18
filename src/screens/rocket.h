@@ -18,25 +18,17 @@ namespace Screens
         {
             // TODO: try `sprite.setBuffer` or `pushImage`
             // https://github.com/lovyan03/LovyanGFX/blob/master/examples/Sprite/FlashMemSprite/FlashMemSprite.ino
-            rocket = new LGFX_Sprite(cvbs.canvas);
-            rocket->setColorDepth(lgfx::palette_1bit);
-            rocket->createSprite(96, 56);
-            rocket->fillScreen(TFT_BLACK);
-            rocket->drawBitmap(0, 1, rocket_img, 96, 54, TFT_WHITE);
-
-            header = new LGFX_Sprite(cvbs.canvas);
-            header->setColorDepth(lgfx::palette_1bit);
-            header->createSprite(cvbs.width(), cvbs.height() >> 1);
-            header->fillScreen(TFT_BLACK);
-            header->setTextColor(TFT_WHITE);
-            header->setTextDatum(textdatum_t::top_center);
+            canvas = new LGFX_Sprite(&cvbs);
+            canvas->setColorDepth(lgfx::palette_1bit);
+            canvas->createSprite(cvbs._width, cvbs._height);
+            canvas->fillScreen(TFT_BLACK);
+            canvas->setTextColor(TFT_WHITE);
 
             setAsteroidsQty(16);
         };
         ~Rocket()
         {
-            delete rocket;
-            delete header;
+            delete canvas;
 
             {
                 asteroid_t *a;
@@ -68,13 +60,12 @@ namespace Screens
         };
         std::vector<asteroid_t> asteroids;
 
-        LGFX_Sprite *rocket;
-        LGFX_Sprite *header;
+        LGFX_Sprite *canvas;
 
-        const uint16_t rocketPivotX = (cvbs.width() - 96) >> 1;
-        const uint16_t rocketPivotY = (cvbs.height() - 96) >> 1;
-        const uint16_t headerPivotX = cvbs.width() >> 1;
-        const uint16_t headerPivotY = (cvbs.height() >> 1) + 10;
+        const uint16_t rocketPivotX = (cvbs._width - 96) >> 1;
+        const uint16_t rocketPivotY = (cvbs._height - 96) >> 1;
+        const uint16_t headerPivotX = cvbs._width >> 1;
+        const uint16_t headerPivotY = (cvbs._height >> 1) + 10;
         const uint16_t blinkDelayMs = 600;
 
         uint8_t ry = 20;

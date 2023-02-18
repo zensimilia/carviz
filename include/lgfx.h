@@ -14,9 +14,11 @@ class LGFX : public lgfx::LGFX_Device
 {
 public:
     lgfx::Panel_CVBS _panel_instance;
-    lgfx::LGFX_Sprite *canvas;
+    // lgfx::LGFX_Sprite *canvas;
+    uint16_t _width;
+    uint16_t _height;
 
-    LGFX(uint16_t width = 240, uint16_t height = 160, uint8_t pin = DAC1)
+    LGFX(uint16_t width = 240, uint16_t height = 160, uint8_t pin = DAC1) : _width(width), _height(height)
     {
         {
             auto cfg = _panel_instance.config();
@@ -58,19 +60,9 @@ public:
         }
 
         setPanel(&_panel_instance);
-        this->setColorDepth(lgfx::palette_1bit);
-
-        canvas = new lgfx::LGFX_Sprite(this);
-        canvas->setColorDepth(lgfx::palette_1bit);
-        canvas->createSprite(width, height);
-        canvas->createPalette();
-        canvas->fillScreen(TFT_BLACK);
-        canvas->pushSprite(0, 0);
     };
     LGFX(const LGFX &) = delete;
-    ~LGFX() { delete canvas; };
-
-    inline void push() { canvas->pushSprite(0, 0); };
+    ~LGFX() = default;
 
     inline void drawColorTable()
     {

@@ -4,13 +4,13 @@ using namespace Screens;
 
 void Rocket::draw()
 {
-    cvbs.canvas->clear();
+    canvas->clear();
 
     drawAsteroids();
     drawRocket();
     drawHeader();
 
-    cvbs.push();
+    canvas->pushSprite(0, 0);
 }
 
 void Rocket::initAsteroids()
@@ -21,11 +21,11 @@ void Rocket::initAsteroids()
     {
         a = &asteroids[i];
 
-        a->x = rand() % cvbs.width();
-        a->y = rand() % cvbs.height();
+        a->x = rand() % cvbs._width;
+        a->y = rand() % cvbs._height;
         a->z = rand() % 3 + 1;
         a->r = rand() % 4;
-        a->sprite = new LGFX_Sprite(rocket);
+        a->sprite = new LGFX_Sprite(canvas);
         a->sprite->setColorDepth(lgfx::palette_1bit);
         a->sprite->createSprite(10, 10);
         a->sprite->fillScreen(TFT_BLACK);
@@ -55,7 +55,7 @@ void Rocket::drawRocket()
     if (ry < 5)
         rdy = 1;
 
-    rocket->pushSprite(rocketPivotX, rocketPivotY - ry, TFT_BLACK);
+    canvas->drawBitmap(rocketPivotX, rocketPivotY - ry, rocket_img, 96, 54, TFT_WHITE);
 }
 
 void Rocket::drawAsteroids()
@@ -78,24 +78,21 @@ void Rocket::drawAsteroids()
         {
             a->sprite->clear();
             a->sprite->fillCircle(5, 5, a->r, TFT_WHITE);
-            a->sprite->pushSprite(cvbs.canvas, a->x, a->y, TFT_BLACK);
+            a->sprite->pushSprite(a->x, a->y, TFT_BLACK);
         }
     }
 }
 
 void Rocket::drawHeader(const char *text, float_t textSize)
 {
-    header->clear();
-    header->setTextSize(textSize);
-    header->setFont(&fonts::Orbitron_Light_24);
-    header->drawString(text, headerPivotX, 0);
+    canvas->setTextSize(textSize);
+    canvas->setFont(&fonts::Orbitron_Light_24);
+    canvas->drawCenterString(text, headerPivotX, headerPivotY);
 
     if ((millis() / blinkDelayMs) % 2)
     {
-        header->setTextSize(1);
-        header->setFont(&fonts::Font8x8C64);
-        header->drawString("PRESS START", headerPivotX, 24);
+        canvas->setTextSize(1);
+        canvas->setFont(&fonts::Font8x8C64);
+        canvas->drawCenterString("PRESS START", headerPivotX, headerPivotY + 24);
     }
-
-    header->pushSprite(0, headerPivotY, TFT_BLACK);
 }

@@ -2,6 +2,9 @@
 
 #include <driver/adc_common.h>
 #include <arduinoFFT.h>
+
+#include "soc/timer_group_struct.h"
+#include "soc/timer_group_reg.h"
 #include "utils.h"
 
 #define FFT_READY (1 << 0) // Event bits

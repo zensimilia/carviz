@@ -31,13 +31,13 @@ void Spectrum::drawSpectrum()
         uint16_t x = i * bw;
 
         bandHeight = prevBands[i] = (prevBands[i] + bandBins[i]) >> 1; // Smooth
-        spectrum->fillRect(x, 100, bw, constrain(-bandHeight, -50, 0), TFT_GREENYELLOW);
+        spectrum->fillRect(x, 100, bw, constrain(-bandHeight, -50, 0), 1);
 
         if (bandHeight > 50)
-            spectrum->fillRect(x, 50, bw, 50 - bandHeight, TFT_YELLOW);
+            spectrum->fillRect(x, 50, bw, 50 - bandHeight, 2);
 
         if (bandHeight > 80)
-            spectrum->fillRect(x, 20, bw, 80 - bandHeight, TFT_RED);
+            spectrum->fillRect(x, 20, bw, 80 - bandHeight, 3);
 
         spectrum->drawFastVLine(x - 1, 0, h, TFT_BLACK);
     }
@@ -54,6 +54,4 @@ void Spectrum::draw()
 {
     drawBar();
     drawSpectrum();
-
-    cvbs.push();
 }
