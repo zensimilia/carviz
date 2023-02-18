@@ -25,6 +25,8 @@
 class ASpect
 {
 private:
+    arduinoFFT *_fft;
+
     uint16_t _sampleRate;
     uint16_t _samplingFreq;
 
@@ -50,23 +52,9 @@ private:
     static void fftComputeTaskWrapper(void *_this);
 
 public:
-    arduinoFFT *fft;
-
-    ASpect(uint16_t samples = 1024, uint16_t freq = 44100) : _sampleRate(samples), _samplingFreq(freq)
-    {
-        _vReal = new double_t[_sampleRate]();
-        _vImag = new double_t[_sampleRate]();
-
-        fft = new arduinoFFT(_vReal, _vImag, _sampleRate, _samplingFreq);
-    };
+    ASpect(uint16_t samples = 1024, uint16_t freq = 44100) : _sampleRate(samples), _samplingFreq(freq){};
     ASpect(const ASpect &) = delete;
-    ~ASpect()
-    {
-        delete[] _vReal;
-        delete[] _vImag;
-
-        delete fft;
-    };
+    ~ASpect() { stop(); };
 
     void init();
     void begin();

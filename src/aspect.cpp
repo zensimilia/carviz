@@ -58,8 +58,8 @@ void ASpect::fftComputeTask(void *pvParameters)
             memset(_vImag, 0, sizeof(*_vImag) * _sampleRate);
 
             // Compute FFT
-            fft->Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-            fft->Compute(FFT_FORWARD);
+            _fft->Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+            _fft->Compute(FFT_FORWARD);
 
             // Fill spectrum bins
             for (uint16_t i = 2; i < (_sampleRate >> 1); i++)
@@ -101,6 +101,14 @@ void ASpect::fftComputeTask(void *pvParameters)
         }
     }
 
+    delete _fft;
+    delete[] _vReal;
+    delete[] _vImag;
+
+    _avgVU = 0;
+    _oldVU = 0;
+    memset(&_bandBins, 0, sizeof(_bandBins));
+
     vTaskDelete(NULL);
 }
 
@@ -114,14 +122,22 @@ void ASpect::fftComputeTaskWrapper(void *_this) { static_cast<ASpect *>(_this)->
  */
 void ASpect::init()
 {
-    _process = true; // Flag
+    if (!_process)
+    {
+        _process = true; // Flag
 
-    // Create the Tasks
-    xTaskCreatePinnedToCore(adcReadTaskWrapper, "ADC Read Task", 4096, this, 1, NULL, 0);
-    xTaskCreatePinnedToCore(fftComputeTaskWrapper, "FFT Compute Task", 4096, this, 0, NULL, 0); // Proirity needs to be zero
+        _vReal = new double_t[_sampleRate]();
+        _vImag = new double_t[_sampleRate]();
 
-    // Trigger event that FFT is ready for next computing
-    xEventGroupSetBits(_xEventGroup, FFT_READY);
+        _fft = new arduinoFFT(_vReal, _vImag, _sampleRate, _samplingFreq);
+
+        // Create the Tasks
+        xTaskCreatePinnedToCore(adcReadTaskWrapper, "ADC Read Task", 4096, this, 1, NULL, 0);
+        xTaskCreatePinnedToCore(fftComputeTaskWrapper, "FFT Compute Task", 4096, this, 0, NULL, 0); // Proirity needs to be zero
+
+        // Trigger event that FFT is ready for next computing
+        xEventGroupSetBits(_xEventGroup, FFT_READY);
+    }
 }
 
 /**
@@ -129,5 +145,7 @@ void ASpect::init()
  */
 void ASpect::begin() { init(); }
 
-// TODO: fix memory leak and freezes
+/**
+ * Stops analyzer and clean memory
+ */
 void ASpect::stop() { _process = false; }
