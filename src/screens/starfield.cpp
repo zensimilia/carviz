@@ -44,8 +44,8 @@ void Starfield::draw()
     iy = (canvas->height() - 95) >> 1;
 
     // Calculate delta for astronaut animation
-    _idx = 3.0f * sinf(frames / 15);
-    _idy = 3.0f * sinf(frames / 20 + 2 * PI);
+    _idx = 2.0f * sinf(frames / 15);
+    _idy = 2.0f * sinf(frames / 20 + 2 * PI);
 
     // Draw astronaut and push frame to the screen
     canvas->pushImage(ix + std::roundf(_idx), iy + std::roundf(_idy), 120, 95, astronaut_img, 0xe0);
