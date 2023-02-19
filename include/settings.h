@@ -1,8 +1,8 @@
 #pragma once
 
 #define FPS 30
-#define SCREEN_WIDTH 240
-#define SCREEN_HEIGHT 160
+#define SCREEN_WIDTH 360
+#define SCREEN_HEIGHT 200
 
 #define ASTEROIDS_QTY 16
 
