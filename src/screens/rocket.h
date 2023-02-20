@@ -6,6 +6,8 @@
 #include "aspect.h"
 #include "assets/rocket_img.h"
 
+#define ROCKET_BLINK_DELAY_MS 600
+
 extern ASpect analyzer; // Global analyzer
 extern LGFX cvbs;       // Global cvbs
 
@@ -13,6 +15,24 @@ namespace Screens
 {
     class Rocket
     {
+        // Struct for asteroids: position (x,y), speed (z), radius (r) and (sprite)
+        struct asteroid_t
+        {
+            int16_t x;
+            int16_t y;
+            uint8_t z;
+            uint8_t r;
+            LGFX_Sprite *sprite;
+        };
+        std::vector<asteroid_t> asteroids;
+
+        LGFX_Sprite *canvas;
+
+        uint8_t ry = 20;
+        int8_t rdy = 1;
+
+        uint32_t *spectrum = analyzer.getSpectrum();
+
     public:
         Rocket()
         {
@@ -44,31 +64,7 @@ namespace Screens
         void initAsteroids();
         void drawAsteroids();
         void drawRocket();
-        void drawHeader(const char *text = "ASTRO BLACK", float_t textSize = 0.7f);
+        void drawHeader(const char *text = "ASTRO BLACK", float_t textSize = 0.8f);
 
-    private:
-        // Struct for asteroids: position, speed, radius and sprite
-        struct asteroid_t
-        {
-            int16_t x;
-            int16_t y;
-            uint8_t z;
-            uint8_t r;
-            LGFX_Sprite *sprite;
-        };
-        std::vector<asteroid_t> asteroids;
-
-        LGFX_Sprite *canvas;
-
-        const uint16_t rocketPivotX = (cvbs._width - 96) >> 1;
-        const uint16_t rocketPivotY = (cvbs._height - 96) >> 1;
-        const uint16_t headerPivotX = cvbs._width >> 1;
-        const uint16_t headerPivotY = (cvbs._height >> 1) + 10;
-        const uint16_t blinkDelayMs = 600;
-
-        uint8_t ry = 20;
-        int8_t rdy = 1;
-
-        uint32_t *bandBins = analyzer.getSpectrum();
     }; // class Rocket
 } // namespace Screens

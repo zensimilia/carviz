@@ -24,26 +24,24 @@
  */
 class ASpect
 {
-private:
-    arduinoFFT *_fft;
+    arduinoFFT *fft;
 
-    uint16_t _sampleRate;
-    uint16_t _samplingFreq;
+    uint16_t sampleRate;
+    uint16_t samplingFreq;
 
-    double_t *_vReal;
-    double_t *_vImag;
+    double_t *vReal;
+    double_t *vImag;
 
-    bool _process = false;
-    const uint8_t _bands = BANDS;
-    const uint8_t _samplingPeriodUs = round(1.0 / _samplingFreq * 1000000);
+    bool process = false;
+    const uint8_t samplingPeriodUs = round(1.0 / samplingFreq * 1000000);
 
-    uint32_t _avgVU = 0;
-    uint32_t _oldVU = 0;
-    uint32_t _bandBins[BANDS];
-    uint16_t _freqTable[BANDS] = BANDS_FREQ_TABLE;
+    uint32_t avgVU = 0;
+    uint32_t oldVU = 0;
+    uint32_t bandBins[BANDS] = {0};
+    uint16_t freqTable[BANDS] = BANDS_FREQ_TABLE;
 
-    QueueHandle_t _xSamplesQueue = xQueueCreate(_sampleRate, sizeof(double_t *));
-    EventGroupHandle_t _xEventGroup = xEventGroupCreate();
+    QueueHandle_t xSamplesQueue = xQueueCreate(sampleRate, sizeof(double_t *));
+    EventGroupHandle_t xEventGroup = xEventGroupCreate();
 
     void adcReadTask(void *pvParameters);
     void fftComputeTask(void *pvParameters);
@@ -52,7 +50,7 @@ private:
     static void fftComputeTaskWrapper(void *_this);
 
 public:
-    ASpect(uint16_t samples = 1024, uint16_t freq = 44100) : _sampleRate(samples), _samplingFreq(freq){};
+    ASpect(uint16_t samples = 1024, uint16_t freq = 44100) : sampleRate(samples), samplingFreq(freq){};
     ASpect(const ASpect &) = delete;
     ~ASpect() { stop(); };
 
@@ -60,7 +58,6 @@ public:
     void begin();
     void stop();
 
-    uint32_t getAvgVU() const { return _avgVU / 500.0 * 100.0; }; // TODO: make true VU
-    uint32_t *getSpectrum() { return _bandBins; };
-
+    uint32_t getAvgVU() const { return avgVU / 500.0 * 100.0; }; // TODO: make true VU
+    uint32_t *getSpectrum() { return bandBins; };
 }; // class ASpect

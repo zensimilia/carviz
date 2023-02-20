@@ -15,6 +15,7 @@ namespace Screens
 {
     class Starfield
     {
+        // Struct for stars: position (x,y,z) and radius (r)
         struct star_t
         {
             float_t x;
@@ -22,46 +23,40 @@ namespace Screens
             float_t z;
             uint8_t r;
         };
+        std::vector<star_t> stars;
 
-    private:
-        uint8_t _numStars;
-        float_t _speed;
-        float_t _delta = 0.01f;
-        float_t _spread = STARFIELD_SPREAD;
-        float_t _idx, _idy;
-        const uint16_t _hw = cvbs._width >> 1;
-        const uint16_t _hh = cvbs._height >> 1;
-
-        std::vector<star_t> _stars;
+        uint8_t numStars;
+        float_t speed;
+        float_t delta = 0.01f;
+        float_t spread = STARFIELD_SPREAD;
+        float_t idx, idy;
+        const uint16_t halfWidth = cvbs._width >> 1;
+        const uint16_t halfHeight = cvbs._height >> 1;
 
         LGFX_Sprite *canvas;
 
-        void initStar(uint8_t i);
+        void initStar(uint8_t index);
 
     public:
-        Starfield(uint8_t numStars = 64, float_t speed = 10)
+        Starfield(uint8_t _stars = 64, float_t _speed = 10)
         {
-            _numStars = numStars;
-            _speed = speed;
+            numStars = _stars;
+            speed = _speed;
 
             canvas = new LGFX_Sprite(&cvbs);
             canvas->setColorDepth(lgfx::palette_1bit);
             canvas->createSprite(cvbs._width, cvbs._height);
             canvas->fillScreen(TFT_BLACK);
 
-            _stars.resize(_numStars);
-            for (uint8_t i = 0; i < _numStars; i++)
+            stars.resize(_stars);
+            for (uint8_t i = 0; i < _stars; i++)
             {
                 initStar(i);
             }
         };
         Starfield(const Starfield &) = delete;
-        ~Starfield()
-        {
-            delete canvas;
-        };
+        ~Starfield() { delete canvas; };
 
         void draw();
     }; // class Starfield
-
 } // namespace Screens

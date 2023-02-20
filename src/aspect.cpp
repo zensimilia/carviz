@@ -7,31 +7,31 @@
  */
 void ASpect::adcReadTask(void *pvParameters)
 {
-    _process = true;
+    process = true;
     adc_power_acquire();
 
-    while (_process)
+    while (process)
     {
         int32_t val;
         uint64_t ts;
 
         // Waiting for the FFT to be ready
-        xEventGroupWaitBits(_xEventGroup, FFT_READY, pdTRUE, pdTRUE, portMAX_DELAY);
+        xEventGroupWaitBits(xEventGroup, FFT_READY, pdTRUE, pdTRUE, portMAX_DELAY);
 
         // Collect samples
-        for (uint16_t i = 0; i < _sampleRate; i++)
+        for (uint16_t i = 0; i < sampleRate; i++)
         {
             ts = micros();
             adc2_get_raw(ADC2_CHANNEL_4, ADC_WIDTH_11Bit, &val);
-            _vReal[i] = val;
-            while ((micros() - ts) < _samplingPeriodUs)
+            vReal[i] = val;
+            while ((micros() - ts) < samplingPeriodUs)
             {
                 taskYIELD();
             }
         }
 
         // Send collected samples to the Queue
-        xQueueSend(_xSamplesQueue, (void *)&_vReal, (TickType_t)0);
+        xQueueSend(xSamplesQueue, (void *)&vReal, (TickType_t)0);
     }
 
     adc_power_release();
@@ -48,66 +48,66 @@ void ASpect::adcReadTask(void *pvParameters)
 void ASpect::fftComputeTask(void *pvParameters)
 {
     // Width of each frequency bin in Hz
-    const uint16_t df = _samplingFreq / _sampleRate;
-    _process = true;
+    const uint16_t df = samplingFreq / sampleRate;
+    process = true;
 
-    while (_process)
+    while (process)
     {
-        if (xQueueReceive(_xSamplesQueue, &_vReal, portMAX_DELAY) == pdPASS)
+        if (xQueueReceive(xSamplesQueue, &vReal, portMAX_DELAY) == pdPASS)
         {
-            memset(_vImag, 0, sizeof(*_vImag) * _sampleRate);
+            memset(vImag, 0, sizeof(*vImag) * sampleRate);
 
             // Compute FFT
-            _fft->Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-            _fft->Compute(FFT_FORWARD);
+            fft->Windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+            fft->Compute(FFT_FORWARD);
 
             // Fill spectrum bins
-            for (uint16_t i = 2; i < (_sampleRate >> 1); i++)
+            for (uint16_t i = 2; i < (sampleRate >> 1); i++)
             {
-                if (_vReal[i] > ADC_THRESHOLD)
+                if (vReal[i] > ADC_THRESHOLD)
                 {
                     uint8_t bin = 0;
                     uint16_t freq = (i - 2) * df;
 
-                    while (bin < _bands)
+                    while (bin < BANDS)
                     {
-                        if (freq < _freqTable[bin])
+                        if (freq < freqTable[bin])
                             break;
                         bin++;
                     }
 
-                    if (bin >= _bands)
+                    if (bin >= BANDS)
                         break;
 
                     // Complex to magnitude
-                    _bandBins[bin] += int_sqrt(_vReal[i] * _vReal[i] + _vImag[i] * _vImag[i]);
+                    bandBins[bin] += int_sqrt(vReal[i] * vReal[i] + vImag[i] * vImag[i]);
                 }
             }
 
             // Normalize spectrum bins
-            for (uint8_t i = 0; i < _bands; i++)
+            for (uint8_t i = 0; i < BANDS; i++)
             {
-                _avgVU += _bandBins[i];
+                avgVU += bandBins[i];
 
-                _bandBins[i] /= AMPLITUDE;
-                _bandBins[i] = constrain(_bandBins[i], 0, 100);
+                bandBins[i] /= AMPLITUDE;
+                bandBins[i] = constrain(bandBins[i], 0, 100);
             }
 
-            uint16_t t = _avgVU / (_sampleRate >> 1);
-            _avgVU = _oldVU = max(t, (uint16_t)((_oldVU * 3 + t) / 4));
+            uint16_t t = avgVU / (sampleRate >> 1);
+            avgVU = oldVU = max(t, (uint16_t)((oldVU * 3 + t) / 4)); // Smooth
 
             // Trigger event that FFT is ready for next computing
-            xEventGroupSetBits(_xEventGroup, FFT_READY);
+            xEventGroupSetBits(xEventGroup, FFT_READY);
         }
     }
 
-    delete _fft;
-    delete[] _vReal;
-    delete[] _vImag;
+    delete fft;
+    delete[] vReal;
+    delete[] vImag;
 
-    _avgVU = 0;
-    _oldVU = 0;
-    memset(&_bandBins, 0, sizeof(_bandBins));
+    avgVU = 0;
+    oldVU = 0;
+    memset(&bandBins, 0, sizeof(bandBins));
 
     vTaskDelete(NULL);
 }
@@ -122,21 +122,21 @@ void ASpect::fftComputeTaskWrapper(void *_this) { static_cast<ASpect *>(_this)->
  */
 void ASpect::init()
 {
-    if (!_process)
+    if (!process)
     {
-        _process = true; // Flag
+        process = true; // Flag
 
-        _vReal = new double_t[_sampleRate]();
-        _vImag = new double_t[_sampleRate]();
+        vReal = new double_t[sampleRate]();
+        vImag = new double_t[sampleRate]();
 
-        _fft = new arduinoFFT(_vReal, _vImag, _sampleRate, _samplingFreq);
+        fft = new arduinoFFT(vReal, vImag, sampleRate, samplingFreq);
 
         // Create the Tasks
         xTaskCreatePinnedToCore(adcReadTaskWrapper, "ADC Read Task", 4096, this, 1, NULL, 0);
         xTaskCreatePinnedToCore(fftComputeTaskWrapper, "FFT Compute Task", 4096, this, 0, NULL, 0); // Proirity needs to be zero
 
         // Trigger event that FFT is ready for next computing
-        xEventGroupSetBits(_xEventGroup, FFT_READY);
+        xEventGroupSetBits(xEventGroup, FFT_READY);
     }
 }
 
@@ -148,4 +148,4 @@ void ASpect::begin() { init(); }
 /**
  * Stops analyzer and clean memory
  */
-void ASpect::stop() { _process = false; }
+void ASpect::stop() { process = false; }

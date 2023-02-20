@@ -21,8 +21,8 @@ void Rocket::initAsteroids()
     {
         a = &asteroids[i];
 
-        a->x = rand() % cvbs._width;
-        a->y = rand() % cvbs._height;
+        a->x = rand() % canvas->width();
+        a->y = rand() % canvas->height();
         a->z = rand() % 3 + 1;
         a->r = 1;
         a->sprite = new LGFX_Sprite(canvas);
@@ -49,13 +49,16 @@ void Rocket::setAsteroidsQty(uint8_t qty)
 
 void Rocket::drawRocket()
 {
+    static const uint16_t rocketX = (canvas->width() - 96) >> 1;
+    static const uint16_t rocketY = (canvas->height() - 96) >> 1;
+
     ry += rdy;
     if (ry > 20)
         rdy = -1;
     if (ry < 5)
         rdy = 1;
 
-    canvas->drawBitmap(rocketPivotX, rocketPivotY - ry, rocket_img, 96, 54, TFT_WHITE);
+    canvas->drawBitmap(rocketX, rocketY - ry, rocket_img, 96, 54, TFT_WHITE);
 }
 
 void Rocket::drawAsteroids()
@@ -66,15 +69,16 @@ void Rocket::drawAsteroids()
     {
         a = &asteroids[i];
         a->x -= a->z;
-        a->r = 3.0 / 100 * bandBins[i];
+        a->r = 3.0 / 100 * spectrum[i];
 
         if (a->x < -10)
         {
-            a->x = rand() % cvbs.width() + cvbs.width();
-            a->y = rand() % cvbs.height();
+            a->x = rand() % canvas->width() + canvas->width();
+            a->y = rand() % canvas->height();
+            a->z = rand() % 3 + 1;
         }
 
-        if (a->x <= cvbs.width())
+        if (a->x <= canvas->width())
         {
             a->sprite->clear();
             a->sprite->fillCircle(5, 5, a->r, TFT_WHITE);
@@ -85,14 +89,18 @@ void Rocket::drawAsteroids()
 
 void Rocket::drawHeader(const char *text, float_t textSize)
 {
+    static const uint16_t halfWidth = canvas->width() >> 1;
+    static const uint16_t halfHeight = canvas->height() >> 1;
+
+    uint8_t fontOffset = canvas->fontHeight(&fonts::Orbitron_Light_24) * textSize + 2;
+
     canvas->setTextSize(textSize);
     canvas->setFont(&fonts::Orbitron_Light_24);
-    canvas->drawCenterString(text, headerPivotX, headerPivotY);
+    canvas->drawCenterString(text, halfWidth, halfHeight + 10);
 
-    if ((millis() / blinkDelayMs) % 2)
+    if ((millis() / ROCKET_BLINK_DELAY_MS) % 2)
     {
         canvas->setTextSize(1);
-        canvas->setFont(&fonts::Font8x8C64);
-        canvas->drawCenterString("PRESS START", headerPivotX, headerPivotY + 24);
+        canvas->drawCenterString("PRESS START", halfWidth, halfHeight + fontOffset, &fonts::Font8x8C64);
     }
 }

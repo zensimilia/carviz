@@ -7,27 +7,29 @@
 extern ASpect analyzer; // Global analyzer
 extern LGFX cvbs;       // Global cvbs
 
+#define SPECTRUM_VU_REFRESH_MS 100
+
 namespace Screens
 {
     class Spectrum
     {
-    private:
-        LGFX_Sprite *spectrum;
         LGFX_Sprite *vu;
+        LGFX_Sprite *spectrum;
         CEveryNMillis *avgVUrefreshTime;
 
         uint32_t prevBands[BANDS] = {0};
-        uint32_t *bandBins = analyzer.getSpectrum();
+        uint32_t *bandBins;
         uint8_t bandHeight = 0;
 
         uint16_t w;
         uint16_t h;
-        uint16_t bw;
+        uint16_t bandWidth;
 
     public:
         Spectrum()
         {
-            avgVUrefreshTime = new CEveryNMillis(100);
+            avgVUrefreshTime = new CEveryNMillis(SPECTRUM_VU_REFRESH_MS);
+            bandBins = analyzer.getSpectrum();
 
             vu = new LGFX_Sprite(&cvbs);
             vu->setColorDepth(lgfx::palette_2bit);
@@ -46,7 +48,7 @@ namespace Screens
 
             w = spectrum->width();
             h = spectrum->height();
-            bw = (w / BANDS);
+            bandWidth = (w / BANDS);
         };
         ~Spectrum()
         {
