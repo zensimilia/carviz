@@ -64,7 +64,7 @@ namespace Screens
         void initAsteroids();
         void drawAsteroids();
         void drawRocket();
-        void drawHeader(const char *text = "ASTRO BLACK", float_t textSize = 0.8f);
+        void drawHeader(const char *text = "ASTRO BLACK", float_t textSize = 1.0f);
 
     }; // class Rocket
 } // namespace Screens

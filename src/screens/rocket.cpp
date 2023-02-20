@@ -89,14 +89,15 @@ void Rocket::drawAsteroids()
 
 void Rocket::drawHeader(const char *text, float_t textSize)
 {
+    uint32_t fontOffset;
+
     static const uint16_t halfWidth = canvas->width() >> 1;
     static const uint16_t halfHeight = canvas->height() >> 1;
 
-    uint8_t fontOffset = canvas->fontHeight(&fonts::Orbitron_Light_24) * textSize + 2;
-
     canvas->setTextSize(textSize);
-    canvas->setFont(&fonts::Orbitron_Light_24);
-    canvas->drawCenterString(text, halfWidth, halfHeight + 10);
+    canvas->drawCenterString(text, halfWidth, halfHeight + 10, &fonts::Orbitron_Light_24);
+
+    fontOffset = canvas->fontHeight(&fonts::Orbitron_Light_24) + 20;
 
     if ((millis() / ROCKET_BLINK_DELAY_MS) % 2)
     {
