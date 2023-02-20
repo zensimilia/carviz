@@ -9,6 +9,7 @@
 #include "screens/rocket.h"
 #include "screens/starfield.h"
 #include "screens/ripley.h"
+#include "screens/planet.h"
 
 ASpect analyzer(SAMPLES, SAMPLING_FREQ);
 LGFX cvbs(SCREEN_WIDTH, SCREEN_HEIGHT, DAC2); // NTSC, 240x160, 8-bit (RGB332) color
@@ -17,6 +18,7 @@ Screens::Spectrum sSpectrum;
 Screens::Rocket sRocket;
 Screens::Starfield sStarfield(16, 5);
 Screens::Ripley sRipley;
+Screens::Planet sPlanet;
 
 esp_pm_lock_handle_t powerManagementLock;
 esp_adc_cal_characteristics_t adc2_chars;
@@ -66,7 +68,8 @@ void loop()
     if (millis() - frames >= 1000 / FPS)
     {
         frames = millis();
-        sRipley.draw();
+        sPlanet.draw();
+        // sRipley.draw();
         // sStarfield.draw();
         // sSpectrum.draw();
         // sRocket.draw();
