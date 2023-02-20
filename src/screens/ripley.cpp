@@ -30,13 +30,40 @@ void Ripley::drawDescription(const char *text)
 
 void Ripley::drawIndicators()
 {
+    uint16_t bass = (spectrum[0] + spectrum[1]) / 2;
+    uint16_t midd;
+    uint16_t treb;
+
+    for (uint8_t i = 2; i < 9; i++)
+    {
+        midd += spectrum[i];
+    }
+    midd /= 7;
+
+    for (uint8_t i = 9; i < 16; i++)
+    {
+        treb += spectrum[i];
+    }
+    treb /= 7;
+
     indicators->clear();
 
     indicators->setTextColor(TFT_WHITE);
     indicators->setCursor(0, 0);
-    indicators->printf("RAM:%6d", esp_get_free_heap_size());
+    indicators->printf("TIME %6d\n", millis() / 1000);
+    indicators->printf("HEAP %6d\n", esp_get_free_heap_size());
+    indicators->printf("PEAK %6d\n", analyzer.getAvgVU());
+    indicators->print("BASS\nMIDD\nTREB");
 
-    indicators->pushSprite(indicators->width() >> 1, 20);
+    indicators->drawRoundRect(35, 24, 130, 8, 2, TFT_WHITE);
+    indicators->drawRoundRect(35, 32, 130, 8, 2, TFT_WHITE);
+    indicators->drawRoundRect(35, 40, 130, 8, 2, TFT_WHITE);
+
+    indicators->fillRect(38, 26, bass / 100.0 * 124, 4, TFT_WHITE);
+    indicators->fillRect(38, 34, midd / 100.0 * 124, 4, TFT_WHITE);
+    indicators->fillRect(38, 42, treb / 100.0 * 124, 4, TFT_WHITE);
+
+    indicators->pushSprite(cvbs.width() >> 1, 10);
 }
 
 void Ripley::drawBackground()

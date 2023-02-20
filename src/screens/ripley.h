@@ -5,7 +5,7 @@
 #include "CEveryNTime.h"
 #include "assets/ripley_img.h"
 
-#define RIPLEY_WRITE_DELAY_MS 500
+#define RIPLEY_WRITE_DELAY_MS 50
 
 extern ASpect analyzer; // Global analyzer
 extern LGFX cvbs;       // Global cvbs
@@ -20,8 +20,8 @@ namespace Screens
         const char *title = "体字 サイズ 12 ボルド";
         const char *description =
             "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n\n"
-            "Etiam vel sem arcu. Etiam pulvinar nec urna ac suscipit. "
-            "Vestibulum congue bibendum nisi, vel egestas eros varius vel.\n\n"
+            "Etiam vel sem arcu. Etiam pulvinar nec urna ac uscipit. "
+            "Vestibulum congue bibendum nisi, vel egestas eros varus vel.\n\n"
             "Nunc lobortis ipsum tortor, vitae tincidunt justo pretium ac. "
             "Vivamus dapibus purus vel urna imperdiet, in consequat orci vulputate.\n\n";
 
