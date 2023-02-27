@@ -19,11 +19,9 @@ namespace Screens
     public:
         Planet()
         {
-            cvbs.pushImage(0, 0, 360, 200, planet_img);
-
             planet = new LGFX_Sprite(&cvbs);
             planet->setColorDepth(lgfx::palette_1bit);
-            planet->createSprite(200, 200);
+            planet->createSprite(360, 200);
             planet->clear(TFT_BLACK);
         };
         Planet(const Planet &) = delete;
