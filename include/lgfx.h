@@ -1,6 +1,5 @@
 #pragma once
 
-#define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 
 #define LGFX_BRIGHTNESS 128
@@ -12,9 +11,9 @@
  */
 class LGFX : public lgfx::LGFX_Device
 {
-public:
     lgfx::Panel_CVBS _panel_instance;
-    // lgfx::LGFX_Sprite *canvas;
+
+public:
     uint16_t _width;
     uint16_t _height;
 
@@ -42,6 +41,7 @@ public:
             cfg.pin_dac = pin;                         // 25 | 26
             cfg.output_level = LGFX_BRIGHTNESS;        // Brightness
             cfg.chroma_level = LGFX_SATURATION;        // Saturation
+            cfg.use_psram = 0;
 
             if ((bool)LGFX_USE_PSRAM)
             {
