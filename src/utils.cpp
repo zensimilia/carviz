@@ -73,3 +73,19 @@ uint16_t int_sqrt(uint32_t a)
 
     return x;
 }
+
+/**
+ * Convert a number from one range to another
+ *
+ * @param num The number you want to convert
+ * @param inMin The minimum value of the input range.
+ * @param inMax The maximum value of the input range.
+ * @param outMin The minimum value of the output range.
+ * @param outMax The maximum value of the output range.
+ *
+ * @return The value of the number after it has been converted to the new range.
+ */
+float_t num_to_range(float num, float inMin, float inMax, float outMin, float outMax)
+{
+    return outMin + (float(num - inMin) / float(inMax - inMin) * (outMax - outMin));
+}

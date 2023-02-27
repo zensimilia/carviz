@@ -2,12 +2,6 @@
 
 using namespace Screens;
 
-float_t num_to_range(float num, float inMin, float inMax, float outMin, float outMax)
-{
-
-    return outMin + (float(num - inMin) / float(inMax - inMin) * (outMax - outMin));
-}
-
 void Planet::draw()
 {
     float_t r;

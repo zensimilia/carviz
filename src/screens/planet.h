@@ -3,6 +3,7 @@
 #include "lgfx.h"
 #include "aspect.h"
 #include "settings.h"
+#include "utils.h"
 
 extern ASpect analyzer; // Global analyzer
 extern LGFX cvbs;       // Global cvbs
