@@ -66,15 +66,19 @@ public:
 
     inline void drawColorTable()
     {
+        const uint16_t height = this->height() >> 3;
+        const uint16_t width = this->width();
+
         this->clear();
 
-        for (int x = 0; x < this->width(); ++x)
+        for (uint16_t x = 0; x < width; ++x)
         {
-            int v = x * 256 / this->width();
-            this->fillRect(x, 0 * this->height() >> 3, 7, this->height() >> 3, this->color888(v, v, v));
-            this->fillRect(x, 1 * this->height() >> 3, 7, this->height() >> 3, this->color888(v, 0, 0));
-            this->fillRect(x, 2 * this->height() >> 3, 7, this->height() >> 3, this->color888(0, v, 0));
-            this->fillRect(x, 3 * this->height() >> 3, 7, this->height() >> 3, this->color888(0, 0, v));
+            uint16_t v = x * 256 / width;
+
+            this->fillRect(x, 0 * height, 7, height, this->color888(v, v, v));
+            this->fillRect(x, 1 * height, 7, height, this->color888(v, 0, 0));
+            this->fillRect(x, 2 * height, 7, height, this->color888(0, v, 0));
+            this->fillRect(x, 3 * height, 7, height, this->color888(0, 0, v));
         }
     };
 };
